@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Optional
@@ -7,13 +8,16 @@ from typing import Optional
 import psutil
 import yaml
 
+logger = logging.getLogger(__name__)
+
 
 def _load_labels(hub_config_path: Path) -> dict[int, str]:
     try:
         with open(hub_config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         return {a["port"]: a["name"] for a in data.get("agents", [])}
-    except Exception:
+    except (FileNotFoundError, OSError, yaml.YAMLError, KeyError, TypeError) as exc:
+        logger.debug("Could not load labels from %s: %s", hub_config_path, exc)
         return {}
 
 
