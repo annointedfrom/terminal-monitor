@@ -10,7 +10,7 @@ def get_resources() -> dict:
     disk_path = "C:\\" if os.name == "nt" else "/"
     disk = psutil.disk_usage(disk_path)
     return {
-        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "cpu_percent": psutil.cpu_percent(interval=None),
         "memory": {
             "total": mem.total,
             "available": mem.available,

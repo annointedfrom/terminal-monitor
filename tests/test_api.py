@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from termmon.main import app
+from termmon.scanner.resources import get_resources
 
 client = TestClient(app)
 
@@ -108,3 +109,10 @@ def test_get_resources_structure():
     assert data["memory"]["total"] == 17179869184
     assert data["memory"]["percent"] == 47.6
     assert data["disk"]["percent"] == 39.1
+
+
+def test_get_resources_live_schema():
+    data = get_resources()
+    assert isinstance(data["cpu_percent"], float)
+    assert {"total", "available", "percent", "used"} <= data["memory"].keys()
+    assert {"total", "used", "free", "percent"} <= data["disk"].keys()
