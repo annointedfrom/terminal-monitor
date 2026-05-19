@@ -116,6 +116,35 @@ async def kill_process(pid: int):
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
 
+@app.get("/api/process/{pid}")
+async def process_detail(pid: int):
+    try:
+        proc = psutil.Process(pid)
+        with proc.oneshot():
+            try:
+                exe = proc.exe()
+            except (psutil.AccessDenied, OSError):
+                exe = None
+            try:
+                cmd = proc.cmdline()
+            except (psutil.AccessDenied, OSError):
+                cmd = []
+            return {
+                "pid": pid,
+                "name": proc.name(),
+                "exe": exe,
+                "cmdline": cmd[:8],
+                "username": proc.username(),
+                "cpu_percent": proc.cpu_percent(interval=None),
+                "status": proc.status(),
+                "create_time": proc.create_time(),
+            }
+    except psutil.NoSuchProcess:
+        return JSONResponse(status_code=404, content={"detail": "Process not found"})
+    except psutil.AccessDenied:
+        return JSONResponse(status_code=403, content={"detail": "Access denied"})
+
+
 @app.post("/api/restart/{agent_id}")
 async def restart_agent(agent_id: str):
     return JSONResponse(status_code=501, content={"detail": "restart not implemented (v2)"})

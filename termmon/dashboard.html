@@ -39,8 +39,9 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .tab-pane.active { display: block; }
 .tbl-header { gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #1a1a1a; padding-bottom: 3px; }
 .tbl-header span { color: #444; font-size: 8px; letter-spacing: 1px; }
-.proc-grid { display: grid; grid-template-columns: 1fr 80px 65px 60px auto; gap: 4px; }
-.proc-row { display: grid; grid-template-columns: 1fr 80px 65px 60px auto; gap: 4px; align-items: center; margin-bottom: 5px; }
+.proc-grid { display: grid; grid-template-columns: minmax(60px, 180px) 90px 58px 52px 46px; gap: 4px; }
+.proc-row { display: grid; grid-template-columns: minmax(60px, 180px) 90px 58px 52px 46px; gap: 4px; align-items: center; margin-bottom: 5px; cursor: pointer; border-radius: 2px; }
+.proc-row:hover { background: #0d1a22; }
 .mem-cell { display: flex; flex-direction: column; gap: 1px; }
 .mem-bar-bg { background: #1a1a1a; height: 3px; border-radius: 1px; }
 .mem-bar { height: 100%; border-radius: 1px; }
@@ -53,6 +54,17 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .res-bar-bg { background: #1a1a1a; height: 6px; border-radius: 3px; }
 .res-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
 .coming-soon { display: flex; align-items: center; justify-content: center; height: 120px; color: #333; font-size: 10px; letter-spacing: 2px; }
+.proc-detail { background: #080f18; border-left: 2px solid #1a4a7a; padding: 6px 10px; margin: -3px 0 6px 0; }
+.proc-detail-desc { color: #6a9cbf; font-size: 9px; line-height: 1.5; margin-bottom: 5px; }
+.proc-detail-grid { display: grid; grid-template-columns: 52px 1fr; gap: 2px 8px; }
+.proc-detail-key { color: #333; font-size: 8px; letter-spacing: 1px; }
+.proc-detail-val { color: #778; font-size: 8px; word-break: break-all; }
+.sparkline { display: flex; align-items: flex-end; gap: 2px; height: 28px; margin-top: 3px; overflow: hidden; }
+.spark-bar { min-width: 5px; border-radius: 1px 1px 0 0; flex-grow: 1; }
+.hist-row { display: grid; grid-template-columns: 70px 42px 42px 48px 1fr; gap: 4px; align-items: center; padding: 3px 0; border-bottom: 1px solid #111; }
+.change-pill { display: inline-block; font-size: 7px; padding: 0 3px; border-radius: 2px; margin-right: 2px; }
+.pill-new { background: #0a2a0a; color: #2ecc71; }
+.pill-gone { background: #2a0a0a; color: #e74c3c; }
 </style>
 </head>
 <body>
@@ -97,8 +109,8 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   <div class="tab active" onclick="switchTab('processes')">PROCESSES</div>
   <div class="tab" onclick="switchTab('mcp')">MCP</div>
   <div class="tab" onclick="switchTab('resources')">RESOURCES</div>
-  <div class="tab soon">HISTORY<span class="soon-badge">SOON</span></div>
-  <div class="tab soon">ENERGY<span class="soon-badge">SOON</span></div>
+  <div class="tab" onclick="switchTab('history')">HISTORY</div>
+  <div class="tab" onclick="switchTab('energy')">ENERGY</div>
 </div>
 
 <div id="tab-content">
@@ -118,10 +130,13 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
     <div id="res-content"></div>
   </div>
   <div id="pane-history" class="tab-pane">
-    <div class="coming-soon">COMING SOON</div>
+    <div class="tbl-header hist-row" style="border-bottom:1px solid #1a1a1a;padding-bottom:3px;margin-bottom:4px;">
+      <span>TIME</span><span>PORTS</span><span>PROCS</span><span>MCP</span><span>CHANGES</span>
+    </div>
+    <div id="hist-rows"><div style="color:#333;font-size:9px;padding:10px 0;">Collecting history&#8230;</div></div>
   </div>
   <div id="pane-energy" class="tab-pane">
-    <div class="coming-soon">COMING SOON</div>
+    <div id="energy-content"></div>
   </div>
 </div>
 
@@ -129,12 +144,35 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 var _secondsSinceUpdate = 0;
 var _lastScan = null;
 
-// Maps MCP server name → the port its underlying API listens on.
-// Add entries here for any service with a known API port.
-var MCP_PORT_MAP = {
-  'neurolinked-brain': 8000,
-  'obsidian': 27123,
+var MCP_PORT_MAP = { 'neurolinked-brain': 8000, 'obsidian': 27123 };
+
+var PROC_DESC = {
+  'lsass.exe': 'Local Security Authority — Windows authentication, login tokens, and security policy enforcement. Core OS process; killing it crashes Windows.',
+  'svchost.exe': 'Service Host — generic Windows container that runs multiple background services. Many instances running simultaneously is normal.',
+  'python.exe': 'Python interpreter — running a Python script or web server (FastAPI, Flask, etc).',
+  'uvicorn': 'Uvicorn ASGI server — serves FastAPI and Starlette web applications.',
+  'node.exe': 'Node.js — JavaScript server-side runtime. Used by many CLI tools, MCP servers, and web backends.',
+  'Obsidian.exe': 'Obsidian — Markdown note-taking app. Runs a local server on port 27123 for plugin and MCP access.',
+  'chrome.exe': 'Google Chrome browser.',
+  'msedge.exe': 'Microsoft Edge browser.',
+  'Code.exe': 'Visual Studio Code — code editor.',
+  'WindowsTerminal.exe': 'Windows Terminal — modern terminal emulator for PowerShell, CMD, WSL.',
+  'java.exe': 'Java Virtual Machine — running a Java application.',
+  'SearchIndexer.exe': 'Windows Search Indexer — indexes file contents for fast search. High I/O during indexing bursts is normal.',
+  'MsMpEng.exe': 'Windows Defender — real-time antivirus and malware scanning engine.',
+  'explorer.exe': 'Windows Explorer — desktop shell, file manager, and taskbar.',
+  'RuntimeBroker.exe': 'Runtime Broker — manages permissions for Microsoft Store / UWP apps.',
+  'spoolsv.exe': 'Print Spooler — manages the print job queue.',
+  'WmiPrvSE.exe': 'WMI Provider Host — handles Windows Management Instrumentation queries from scripts and tools.',
+  'nginx.exe': 'Nginx — web server and reverse proxy.',
+  'postgres.exe': 'PostgreSQL — relational database server.',
+  'redis-server.exe': 'Redis — in-memory key-value store and cache.',
+  'wininit.exe': 'Windows Initialization Process — starts core subsystems at boot. Fundamental OS process.',
+  'services.exe': 'Windows Service Control Manager — starts, stops, and monitors background services.',
 };
+
+var _scanHistory = [];
+var _resHistory  = [];
 
 // ── Drag-to-resize stat header ────────────────────────────────
 var _statHeader = document.getElementById('stat-header');
@@ -160,12 +198,14 @@ document.addEventListener('mouseup', function() {
 })();
 
 function switchTab(name) {
-  var tabs = document.querySelectorAll('.tab:not(.soon)');
-  var names = ['processes','mcp','resources'];
+  var tabs = document.querySelectorAll('.tab');
+  var names = ['processes','mcp','resources','history','energy'];
   tabs.forEach(function(t, i) { t.classList.toggle('active', names[i] === name); });
   document.querySelectorAll('.tab-pane').forEach(function(p) {
     p.classList.toggle('active', p.id === 'pane-' + name);
   });
+  if (name === 'history') renderHistory();
+  if (name === 'energy') renderEnergy();
 }
 
 function setError(msg) {
@@ -185,6 +225,16 @@ async function fetchScan() {
     renderStatHeader(data);
     renderProcesses(data.ports || []);
     renderMCP(data.mcp_servers || []);
+    var mcps = data.mcp_servers || [];
+    _scanHistory.push({
+      ts: Date.now(),
+      portCount: (data.ports || []).length,
+      procCount: (data.summary || {}).process_count || 0,
+      mcpRunning: mcps.filter(function(m) { return m.running; }).length,
+      mcpTotal: mcps.length,
+      procs: Array.from(new Set((data.ports || []).map(function(p) { return p.process; }))),
+    });
+    if (_scanHistory.length > 30) _scanHistory.shift();
   } catch(e) {
     setError('Scan failed — ' + e.message);
   }
@@ -227,8 +277,9 @@ function renderProcesses(ports) {
     row.className = 'proc-row';
     row.dataset.pid = p.pid;
     var nameEl = document.createElement('span');
-    nameEl.style.cssText = 'color:#ccc;font-size:9px;';
+    nameEl.style.cssText = 'color:#ccc;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
     nameEl.textContent = p.process;
+    row.onclick = (function(proc, r) { return function(e) { if (e.target.classList.contains('kill-btn')) return; showProcessDetail(proc, r); }; })(p, row);
     var memCell = document.createElement('div');
     memCell.className = 'mem-cell';
     var memVal = document.createElement('span');
@@ -259,6 +310,42 @@ function renderProcesses(ports) {
     row.appendChild(killBtn);
     container.appendChild(row);
   });
+}
+
+function showProcessDetail(p, row) {
+  var existing = row.nextElementSibling;
+  if (existing && existing.classList.contains('proc-detail')) { existing.remove(); return; }
+  document.querySelectorAll('.proc-detail').forEach(function(d) { d.remove(); });
+  var detail = document.createElement('div');
+  detail.className = 'proc-detail';
+  var descEl = document.createElement('div');
+  descEl.className = 'proc-detail-desc';
+  descEl.textContent = PROC_DESC[p.process] || 'No description available for this process.';
+  detail.appendChild(descEl);
+  var grid = document.createElement('div');
+  grid.className = 'proc-detail-grid';
+  function addRow(key, val) {
+    var k = document.createElement('span'); k.className = 'proc-detail-key'; k.textContent = key;
+    var v = document.createElement('span'); v.className = 'proc-detail-val'; v.textContent = val;
+    grid.appendChild(k); grid.appendChild(v);
+  }
+  addRow('PID', p.pid || '—');
+  addRow('PORT', p.port || '—');
+  addRow('RAM', Math.round(p.memory_mb || 0) + ' MB');
+  if (p.label) addRow('LABEL', p.label);
+  detail.appendChild(grid);
+  row.parentNode.insertBefore(detail, row.nextSibling);
+  fetch('/api/process/' + p.pid).then(function(r) {
+    if (!r.ok) return null;
+    return r.json();
+  }).then(function(data) {
+    if (!data) return;
+    if (data.exe) addRow('EXE', data.exe);
+    if (data.username) addRow('USER', data.username);
+    if (data.cpu_percent !== undefined) addRow('CPU', data.cpu_percent.toFixed(1) + '%');
+    if (data.status) addRow('STATUS', data.status);
+    if (data.cmdline && data.cmdline.length) addRow('CMD', data.cmdline.join(' ').substring(0, 80));
+  }).catch(function() {});
 }
 
 function renderMCP(mcps) {
@@ -337,6 +424,8 @@ async function fetchResources() {
     else if (cpu > 40) { energyEl.textContent = 'BUSY'; energyEl.className = 'stat-num warn'; }
     else { energyEl.textContent = 'OK'; energyEl.className = 'stat-num ok'; }
     energySub.textContent = 'cpu ' + cpu.toFixed(1) + '%';
+    _resHistory.push({ ts: Date.now(), cpu: cpu, ramPct: data.memory ? data.memory.percent : 0, ramRaw: data.memory || null, diskPct: data.disk ? data.disk.percent : 0 });
+    if (_resHistory.length > 30) _resHistory.shift();
   } catch(e) { /* non-fatal */ }
 }
 
@@ -378,6 +467,97 @@ function renderResources(data) {
     var d = data.disk;
     addBar('DISK', d.percent || 0, fmtBytes(d.used) + ' / ' + fmtBytes(d.total) + ' (' + (d.percent||0).toFixed(1) + '%)');
   }
+}
+
+function renderHistory() {
+  var container = document.getElementById('hist-rows');
+  if (!container) return;
+  if (_scanHistory.length === 0) {
+    container.innerHTML = '<div style="color:#333;font-size:9px;padding:10px 0;">Collecting history…</div>';
+    return;
+  }
+  container.innerHTML = '';
+  var reversed = _scanHistory.slice().reverse();
+  reversed.forEach(function(entry, i) {
+    var prev = reversed[i + 1];
+    var row = document.createElement('div');
+    row.className = 'hist-row';
+    var d = new Date(entry.ts);
+    var timeEl = document.createElement('span');
+    timeEl.style.cssText = 'color:#555;font-size:8px;';
+    timeEl.textContent = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0') + ':' + d.getSeconds().toString().padStart(2,'0');
+    var portEl = document.createElement('span');
+    portEl.style.cssText = 'color:#aaa;font-size:9px;';
+    portEl.textContent = entry.portCount;
+    var procEl = document.createElement('span');
+    procEl.style.cssText = 'color:#aaa;font-size:9px;';
+    procEl.textContent = entry.procCount;
+    var mcpColor = entry.mcpRunning === entry.mcpTotal ? '#2ecc71' : '#e67e22';
+    var mcpEl = document.createElement('span');
+    mcpEl.style.cssText = 'color:' + mcpColor + ';font-size:9px;';
+    mcpEl.textContent = entry.mcpRunning + '/' + entry.mcpTotal;
+    var changesEl = document.createElement('span');
+    changesEl.style.fontSize = '8px';
+    if (prev) {
+      var prevSet = new Set(prev.procs);
+      var curSet = new Set(entry.procs);
+      var added = entry.procs.filter(function(n) { return !prevSet.has(n); });
+      var removed = prev.procs.filter(function(n) { return !curSet.has(n); });
+      added.slice(0, 3).forEach(function(n) {
+        var pill = document.createElement('span');
+        pill.className = 'change-pill pill-new';
+        pill.textContent = '+' + n.replace('.exe','');
+        changesEl.appendChild(pill);
+      });
+      removed.slice(0, 3).forEach(function(n) {
+        var pill = document.createElement('span');
+        pill.className = 'change-pill pill-gone';
+        pill.textContent = '-' + n.replace('.exe','');
+        changesEl.appendChild(pill);
+      });
+      if (!added.length && !removed.length) { changesEl.style.color = '#333'; changesEl.textContent = '—'; }
+    } else {
+      changesEl.style.color = '#333'; changesEl.textContent = 'baseline';
+    }
+    row.appendChild(timeEl); row.appendChild(portEl); row.appendChild(procEl);
+    row.appendChild(mcpEl); row.appendChild(changesEl);
+    container.appendChild(row);
+  });
+}
+
+function renderEnergy() {
+  var container = document.getElementById('energy-content');
+  if (!container) return;
+  container.innerHTML = '';
+  if (_resHistory.length === 0) {
+    container.innerHTML = '<div style="color:#333;font-size:9px;padding:10px 0;">Collecting data…</div>';
+    return;
+  }
+  function fmtBytes(b) { return b >= 1073741824 ? (b/1073741824).toFixed(1)+' GB' : (b/1048576).toFixed(0)+' MB'; }
+  function barColor(pct) { return pct > 70 ? '#e74c3c' : pct > 40 ? '#e67e22' : '#2ecc71'; }
+  var latest = _resHistory[_resHistory.length - 1];
+  function addTrend(label, values, currentLabel) {
+    var sec = document.createElement('div'); sec.className = 'res-section';
+    var labelRow = document.createElement('div'); labelRow.className = 'res-label-row';
+    var lSpan = document.createElement('span'); lSpan.style.cssText = 'color:#888;font-size:9px;'; lSpan.textContent = label;
+    var rSpan = document.createElement('span'); rSpan.style.cssText = 'color:'+barColor(values[values.length-1])+';font-size:9px;'; rSpan.textContent = currentLabel;
+    labelRow.appendChild(lSpan); labelRow.appendChild(rSpan);
+    var spark = document.createElement('div'); spark.className = 'sparkline';
+    var refMax = Math.max.apply(null, values.concat([5]));
+    values.forEach(function(v) {
+      var bar = document.createElement('div'); bar.className = 'spark-bar';
+      bar.style.height = Math.max(2, Math.round((v / refMax) * 28)) + 'px';
+      bar.style.background = barColor(v);
+      spark.appendChild(bar);
+    });
+    sec.appendChild(labelRow); sec.appendChild(spark);
+    container.appendChild(sec);
+  }
+  addTrend('CPU', _resHistory.map(function(r) { return r.cpu; }), latest.cpu.toFixed(1) + '%');
+  var mem = latest.ramRaw;
+  var ramLabel = mem ? fmtBytes(mem.used)+' / '+fmtBytes(mem.total)+' ('+latest.ramPct.toFixed(1)+'%)' : latest.ramPct.toFixed(1)+'%';
+  addTrend('RAM', _resHistory.map(function(r) { return r.ramPct; }), ramLabel);
+  addTrend('DISK', _resHistory.map(function(r) { return r.diskPct; }), latest.diskPct.toFixed(1) + '%');
 }
 
 function tickUpdated() {

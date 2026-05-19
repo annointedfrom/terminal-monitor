@@ -143,3 +143,36 @@ def test_dashboard_returns_html():
     r = client.get("/dashboard")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
+
+
+def test_process_detail_existing():
+    import psutil as _psutil
+    mock_proc = MagicMock()
+    mock_proc.__enter__ = MagicMock(return_value=None)
+    mock_proc.__exit__ = MagicMock(return_value=False)
+    mock_proc.oneshot.return_value = mock_proc
+    mock_proc.name.return_value = "python.exe"
+    mock_proc.exe.return_value = r"C:\Python\python.exe"
+    mock_proc.cmdline.return_value = ["python.exe", "app.py"]
+    mock_proc.username.return_value = "DESKTOP\\user"
+    mock_proc.cpu_percent.return_value = 2.5
+    mock_proc.status.return_value = "running"
+    mock_proc.create_time.return_value = 1700000000.0
+    with patch("termmon.main.psutil.Process", return_value=mock_proc):
+        r = client.get("/api/process/1234")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["pid"] == 1234
+    assert data["name"] == "python.exe"
+    assert "exe" in data
+    assert "cmdline" in data
+    assert "username" in data
+    assert "status" in data
+
+
+def test_process_detail_not_found():
+    import psutil as _psutil
+    with patch("termmon.main.psutil.Process", side_effect=_psutil.NoSuchProcess(pid=99999)):
+        r = client.get("/api/process/99999")
+    assert r.status_code == 404
+    assert "not found" in r.json()["detail"].lower()
