@@ -15,8 +15,11 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 #scan-btn { background: #1a3a1a; border: 1px solid #2a5a2a; color: #2ecc71; font-size: 9px; padding: 2px 8px; border-radius: 2px; cursor: pointer; }
 #scan-btn:hover { background: #1f4a1f; }
 #error-bar { display: none; background: #1a0a0a; border-bottom: 1px solid #4a2a2a; padding: 3px 12px; color: #e67e22; font-size: 9px; flex-shrink: 0; }
-#stat-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1px; background: #1a1a1a; border-bottom: 2px solid #1a3a5a; flex-shrink: 0; }
-.stat-tile { background: #0d0d0d; padding: 6px 10px; }
+#stat-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1px; background: #1a1a1a; flex-shrink: 0; overflow: hidden; }
+.stat-tile { background: #0d0d0d; padding: 6px 10px; display: flex; flex-direction: column; justify-content: center; }
+#resize-handle { height: 5px; background: #0a1520; cursor: ns-resize; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-top: 1px solid #1a3a5a; border-bottom: 1px solid #1a3a5a; }
+#resize-handle::after { content: ''; width: 48px; height: 2px; background: #2a5a8a; border-radius: 1px; }
+#resize-handle:hover { background: #0d2040; }
 .stat-label { color: #555; font-size: 8px; letter-spacing: 1px; margin-bottom: 3px; }
 .stat-value { display: flex; align-items: baseline; gap: 4px; }
 .stat-num { color: #fff; font-size: 18px; font-weight: bold; }
@@ -44,7 +47,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .kill-btn { background: #2a1a1a; border: 1px solid #4a2a2a; color: #e74c3c; font-size: 8px; padding: 1px 5px; border-radius: 2px; cursor: pointer; white-space: nowrap; }
 .kill-btn:hover { background: #3a1a1a; }
 .kill-btn:disabled { opacity: 0.5; cursor: default; }
-.mcp-row { display: grid; grid-template-columns: 1fr 100px 60px; gap: 4px; align-items: center; margin-bottom: 5px; }
+.mcp-row { display: grid; grid-template-columns: 1fr 80px 100px 55px; gap: 4px; align-items: center; margin-bottom: 5px; }
 .res-section { margin-bottom: 12px; }
 .res-label-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
 .res-bar-bg { background: #1a1a1a; height: 6px; border-radius: 3px; }
@@ -88,6 +91,8 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   </div>
 </div>
 
+<div id="resize-handle"></div>
+
 <div id="tab-bar">
   <div class="tab active" onclick="switchTab('processes')">PROCESSES</div>
   <div class="tab" onclick="switchTab('mcp')">MCP</div>
@@ -105,7 +110,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   </div>
   <div id="pane-mcp" class="tab-pane">
     <div class="tbl-header mcp-row">
-      <span>SERVER</span><span>STATUS</span><span>PID</span>
+      <span>SERVER</span><span>BRIDGE</span><span>SERVICE API</span><span>PID</span>
     </div>
     <div id="mcp-rows"></div>
   </div>
@@ -122,6 +127,37 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 
 <script>
 var _secondsSinceUpdate = 0;
+var _lastScan = null;
+
+// Maps MCP server name → the port its underlying API listens on.
+// Add entries here for any service with a known API port.
+var MCP_PORT_MAP = {
+  'neurolinked-brain': 8000,
+  'obsidian': 27123,
+};
+
+// ── Drag-to-resize stat header ────────────────────────────────
+var _statHeader = document.getElementById('stat-header');
+var _rHandle = document.getElementById('resize-handle');
+var _rDragging = false, _rStartY = 0, _rStartH = 0;
+var STAT_H_MIN = 52, STAT_H_MAX = 200;
+
+_rHandle.addEventListener('mousedown', function(e) {
+  _rDragging = true; _rStartY = e.clientY; _rStartH = _statHeader.offsetHeight;
+  document.body.style.userSelect = 'none'; e.preventDefault();
+});
+document.addEventListener('mousemove', function(e) {
+  if (!_rDragging) return;
+  var newH = Math.max(STAT_H_MIN, Math.min(STAT_H_MAX, _rStartH + (e.clientY - _rStartY)));
+  _statHeader.style.height = newH + 'px';
+});
+document.addEventListener('mouseup', function() {
+  if (_rDragging) { _rDragging = false; document.body.style.userSelect = ''; localStorage.setItem('dash-stat-h', _statHeader.offsetHeight); }
+});
+(function() {
+  var h = parseInt(localStorage.getItem('dash-stat-h') || '0');
+  if (h >= STAT_H_MIN && h <= STAT_H_MAX) _statHeader.style.height = h + 'px';
+})();
 
 function switchTab(name) {
   var tabs = document.querySelectorAll('.tab:not(.soon)');
@@ -143,6 +179,7 @@ async function fetchScan() {
     var r = await fetch('/api/scan');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var data = await r.json();
+    _lastScan = data;
     _secondsSinceUpdate = 0;
     setError(null);
     renderStatHeader(data);
@@ -225,6 +262,7 @@ function renderProcesses(ports) {
 }
 
 function renderMCP(mcps) {
+  var activePorts = new Set((_lastScan && _lastScan.ports || []).map(function(p) { return p.port; }));
   var container = document.getElementById('mcp-rows');
   container.innerHTML = '';
   mcps.forEach(function(m) {
@@ -233,15 +271,27 @@ function renderMCP(mcps) {
     var nameEl = document.createElement('span');
     nameEl.style.cssText = 'color:#ccc;font-size:9px;';
     nameEl.textContent = m.name;
-    var statusEl = document.createElement('span');
-    statusEl.style.fontSize = '8px';
-    statusEl.style.color = m.running ? '#2ecc71' : '#e74c3c';
-    statusEl.textContent = m.running ? '✓ running' : '✗ stopped';
+    var bridgeEl = document.createElement('span');
+    bridgeEl.style.fontSize = '8px';
+    bridgeEl.style.color = m.running ? '#2ecc71' : '#444';
+    bridgeEl.textContent = m.running ? '✓ bridge' : '— bridge';
+    var svcPort = MCP_PORT_MAP[m.name];
+    var svcEl = document.createElement('span');
+    svcEl.style.fontSize = '8px';
+    if (svcPort !== undefined) {
+      var svcUp = activePorts.has(svcPort);
+      svcEl.style.color = svcUp ? '#2ecc71' : '#e74c3c';
+      svcEl.textContent = svcUp ? '✓ api :' + svcPort : '✗ api :' + svcPort;
+    } else {
+      svcEl.style.color = '#333';
+      svcEl.textContent = '—';
+    }
     var pidEl = document.createElement('span');
     pidEl.style.cssText = 'color:#555;font-size:8px;';
     pidEl.textContent = m.pid || '—';
     row.appendChild(nameEl);
-    row.appendChild(statusEl);
+    row.appendChild(bridgeEl);
+    row.appendChild(svcEl);
     row.appendChild(pidEl);
     container.appendChild(row);
   });
