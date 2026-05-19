@@ -12,6 +12,7 @@ from termmon import brain
 from termmon.scanner.health import check_health
 from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
+from termmon.scanner.resources import get_resources
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,11 @@ async def stats_mcp_count():
 async def stats_process_count():
     ports = scan_ports()
     return len({p["process"] for p in ports if p["process"] != "unknown"})
+
+
+@app.get("/api/resources")
+async def get_resources_endpoint():
+    return get_resources()
 
 
 @app.post("/api/brain/sync")

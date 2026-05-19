@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -82,3 +82,29 @@ def test_kill_stub_returns_501():
 def test_restart_stub_returns_501():
     r = client.post("/api/restart/job-agent")
     assert r.status_code == 501
+
+
+def test_get_resources_structure():
+    mock_mem = MagicMock()
+    mock_mem.total = 17179869184
+    mock_mem.available = 9000000000
+    mock_mem.percent = 47.6
+    mock_mem.used = 8179869184
+
+    mock_disk = MagicMock()
+    mock_disk.total = 512000000000
+    mock_disk.used = 200000000000
+    mock_disk.free = 312000000000
+    mock_disk.percent = 39.1
+
+    with patch("termmon.scanner.resources.psutil.cpu_percent", return_value=22.5), \
+         patch("termmon.scanner.resources.psutil.virtual_memory", return_value=mock_mem), \
+         patch("termmon.scanner.resources.psutil.disk_usage", return_value=mock_disk):
+        r = client.get("/api/resources")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["cpu_percent"] == 22.5
+    assert data["memory"]["total"] == 17179869184
+    assert data["memory"]["percent"] == 47.6
+    assert data["disk"]["percent"] == 39.1
