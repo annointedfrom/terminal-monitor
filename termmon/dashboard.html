@@ -258,7 +258,13 @@ async function killProcess(pid, row, btn) {
       setTimeout(function() { btn.textContent = 'kill'; btn.style.color = ''; btn.disabled = false; }, 2000);
       return;
     }
-    if (r.status === 404) { row.style.opacity = '0.3'; return; }
+    if (r.status === 404) {
+      btn.textContent = 'gone';
+      btn.style.color = '#555';
+      row.style.opacity = '0.4';
+      setTimeout(function() { row.remove(); fetchScan(); }, 1500);
+      return;
+    }
     if (!r.ok) throw new Error('HTTP ' + r.status);
     row.remove();
     await fetchScan();
@@ -330,7 +336,6 @@ function tickUpdated() {
 }
 
 async function doScan() {
-  _secondsSinceUpdate = 0;
   await Promise.all([fetchScan(), fetchResources()]);
 }
 
