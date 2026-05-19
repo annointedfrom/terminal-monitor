@@ -137,3 +137,9 @@ def test_get_resources_live_schema():
     assert isinstance(data["cpu_percent"], float)
     assert {"total", "available", "percent", "used"} <= data["memory"].keys()
     assert {"total", "used", "free", "percent"} <= data["disk"].keys()
+
+
+def test_dashboard_returns_html():
+    r = client.get("/dashboard")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
