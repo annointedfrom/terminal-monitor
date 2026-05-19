@@ -5,8 +5,11 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+import pathlib
+
+import psutil
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from termmon import brain
 from termmon.scanner.health import check_health
@@ -100,9 +103,27 @@ async def brain_sync():
 
 @app.post("/api/kill/{pid}")
 async def kill_process(pid: int):
-    return JSONResponse(status_code=501, content={"detail": "kill not implemented (v2)"})
+    try:
+        proc = psutil.Process(pid)
+        proc.terminate()
+        await asyncio.sleep(0.5)
+        if proc.is_running():
+            proc.kill()
+        return {"killed": True, "pid": pid}
+    except psutil.NoSuchProcess:
+        return JSONResponse(status_code=404, content={"detail": "Process not found"})
+    except psutil.AccessDenied:
+        return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
 
 @app.post("/api/restart/{agent_id}")
 async def restart_agent(agent_id: str):
     return JSONResponse(status_code=501, content={"detail": "restart not implemented (v2)"})
+
+
+_DASHBOARD = pathlib.Path(__file__).parent / "dashboard.html"
+
+
+@app.get("/dashboard")
+async def dashboard():
+    return FileResponse(_DASHBOARD, media_type="text/html")

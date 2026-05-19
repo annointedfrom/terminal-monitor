@@ -75,9 +75,30 @@ def test_brain_sync_endpoint():
     mock_sync.assert_called_once()
 
 
-def test_kill_stub_returns_501():
-    r = client.post("/api/kill/12345")
-    assert r.status_code == 501
+def test_kill_process_success():
+    mock_proc = MagicMock()
+    mock_proc.is_running.return_value = False
+    with patch("termmon.main.psutil.Process", return_value=mock_proc):
+        r = client.post("/api/kill/12345")
+    assert r.status_code == 200
+    assert r.json() == {"killed": True, "pid": 12345}
+    mock_proc.terminate.assert_called_once()
+
+
+def test_kill_process_not_found():
+    import psutil as _psutil
+    with patch("termmon.main.psutil.Process", side_effect=_psutil.NoSuchProcess(pid=99999)):
+        r = client.post("/api/kill/99999")
+    assert r.status_code == 404
+    assert "not found" in r.json()["detail"].lower()
+
+
+def test_kill_process_access_denied():
+    import psutil as _psutil
+    with patch("termmon.main.psutil.Process", side_effect=_psutil.AccessDenied(pid=1)):
+        r = client.post("/api/kill/1")
+    assert r.status_code == 403
+    assert "denied" in r.json()["detail"].lower()
 
 
 def test_restart_stub_returns_501():
