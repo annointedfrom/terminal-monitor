@@ -196,7 +196,7 @@ async def process_detail(pid: int):
 
 class ChatRequest(BaseModel):
     message: str
-    model: str = "llama3.2:3b"
+    model: str = "ops-brain"
 
 
 @app.post("/api/chat")

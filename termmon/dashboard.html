@@ -835,7 +835,7 @@ async function sendChat() {
     var r = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg, model: 'llama3.2:3b' }),
+      body: JSON.stringify({ message: msg, model: 'ops-brain' }),
     });
     var data = await r.json();
     if (r.status === 503 || !data.available) {

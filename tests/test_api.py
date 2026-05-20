@@ -214,13 +214,13 @@ def test_chat_ollama_available():
     mock_result = {"reply": "You have 1 port active.", "available": True}
     with patch("termmon.main._full_scan", new=AsyncMock(return_value=_mock_scan())), \
          patch("termmon.main.ollama.generate", new=AsyncMock(return_value=mock_result)):
-        r = client.post("/api/chat", json={"message": "how many ports?", "model": "llama3.2:3b"})
+        r = client.post("/api/chat", json={"message": "how many ports?", "model": "ops-brain"})
     assert r.status_code == 200
     data = r.json()
     assert data["available"] is True
     assert data["provider"] == "ollama"
     assert data["reply"] == "You have 1 port active."
-    assert data["model"] == "llama3.2:3b"
+    assert data["model"] == "ops-brain"
 
 
 def test_ollama_models_available():
