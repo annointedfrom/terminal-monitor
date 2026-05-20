@@ -1129,6 +1129,39 @@ function onModelChange() {
   localStorage.setItem('ops-model', _selectedModel);
 }
 
+// ── Alert poller ────────────────────────────────────────────────
+var _activeAlertIds = new Set();
+
+function _requestNotifPermission() {
+  if (localStorage.getItem('notif_denied') === '1') return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(function(perm) {
+      if (perm === 'denied') localStorage.setItem('notif_denied', '1');
+    });
+  }
+}
+
+function _startAlertPoller() {
+  setInterval(async function() {
+    try {
+      var r = await fetch('/api/alerts/current');
+      if (!r.ok) return;
+      var data = await r.json();
+      var incoming = data.alerts || [];
+      var currentIds = new Set(incoming.map(function(a) { return a.id; }));
+      if (Notification.permission === 'granted') {
+        incoming.forEach(function(a) {
+          if (!_activeAlertIds.has(a.id)) {
+            new Notification('Terminal Monitor', { body: a.message });
+          }
+        });
+      }
+      _activeAlertIds = currentIds;
+    } catch(_) {}
+  }, 30000);
+}
+
 function tickUpdated() {
   _secondsSinceUpdate++;
   document.getElementById('updated-label').textContent = 'updated ' + _secondsSinceUpdate + 's ago';
@@ -1140,6 +1173,8 @@ async function doScan() {
 
 _loadConfig();
 _seedHistory();
+_requestNotifPermission();
+_startAlertPoller();
 doScan();
 setInterval(fetchScan, 5000);
 setInterval(fetchResources, 5000);
