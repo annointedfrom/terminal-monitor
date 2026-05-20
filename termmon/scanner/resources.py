@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+from datetime import datetime, timezone
 
 import psutil
 
@@ -75,5 +76,7 @@ def get_resources() -> dict:
     gpus = _nvidia_smi()
     if gpus:
         result["gpus"] = gpus
+
+    result["recorded_at"] = datetime.now(timezone.utc).isoformat()
 
     return result

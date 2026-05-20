@@ -284,14 +284,14 @@ async function _seedHistory() {
         ts: new Date(s.scanned_at).getTime(),
         portCount: (s.ports || []).length,
         procCount: (s.summary || {}).process_count || 0,
-        mcpOnline: (s.summary || {}).mcp_count || 0,
+        mcpRunning: (s.summary || {}).mcp_count || 0,
         mcpTotal: (s.mcp_servers || []).length,
         procs: Array.from(new Set((s.ports || []).map(function(p) { return p.process; }))),
       };
     });
     _resHistory = (data.resources || []).map(function(res) {
       return {
-        ts: Date.now(),
+        ts: res.recorded_at ? new Date(res.recorded_at).getTime() : Date.now(),
         cpu: res.cpu_percent || 0,
         ramPct: (res.memory || {}).percent || 0,
         ramRaw: res.memory || null,
