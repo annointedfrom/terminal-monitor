@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terminal Monitor — Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d0d;color:#c8c8c8;font-family:'Courier New',monospace;font-size:13px;padding:40px 20px}
+h1{color:#00ff41;font-size:16px;margin-bottom:24px;letter-spacing:2px}
+h2{color:#888;font-size:11px;margin:24px 0 8px;text-transform:uppercase;letter-spacing:1px}
+.field{margin-bottom:12px}
+label{display:block;margin-bottom:4px;color:#888;font-size:11px}
+input[type=text],input[type=number],input[type=url]{width:100%;max-width:400px;background:#111;border:1px solid #333;color:#c8c8c8;font-family:inherit;font-size:13px;padding:6px 8px;border-radius:2px}
+input:focus{outline:none;border-color:#00ff41}
+.toggle{display:flex;align-items:center;gap:8px}
+.toggle input[type=checkbox]{width:14px;height:14px;accent-color:#00ff41}
+#svc-list{margin:8px 0}
+.svc-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+.svc-row input{flex:1;max-width:none}
+.svc-row button{background:#1a1a1a;border:1px solid #333;color:#888;cursor:pointer;font-size:11px;padding:4px 8px;border-radius:2px}
+.svc-row button:hover{color:#e74c3c}
+#add-svc{background:none;border:1px dashed #333;color:#00ff41;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 10px;margin-top:4px}
+#add-svc:hover{border-color:#00ff41}
+.submit{margin-top:24px}
+#save-btn{background:#00ff41;border:none;color:#000;cursor:pointer;font-family:inherit;font-size:13px;font-weight:bold;padding:8px 24px;letter-spacing:1px}
+#save-btn:hover{background:#00cc35}
+#status{margin-top:12px;font-size:11px;color:#888}
+.section{border-left:2px solid #1a1a1a;padding-left:12px}
+#brain-url-row{margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<h1>&gt; TERMINAL MONITOR SETUP</h1>
+
+<h2>Dashboard</h2>
+<div class="section">
+  <div class="field"><label>Title</label><input id="title" type="text" value="Ops Dashboard"></div>
+  <div class="field"><label>Default Ollama model</label><input id="model" type="text" value="ops-brain"></div>
+  <div class="field"><label>Training pair threshold</label><input id="threshold" type="number" value="100" min="1"></div>
+</div>
+
+<h2>Brain Sync</h2>
+<div class="section">
+  <div class="field toggle">
+    <input type="checkbox" id="brain-enabled"
+      onchange="document.getElementById('brain-url-row').style.display=this.checked?'block':'none'">
+    <label for="brain-enabled" style="margin:0">Enable NeuroLinked brain sync</label>
+  </div>
+  <div id="brain-url-row" class="field">
+    <label>Brain URL</label>
+    <input id="brain-url" type="url" value="http://localhost:8000">
+  </div>
+</div>
+
+<h2>Services</h2>
+<div class="section">
+  <div id="svc-list"></div>
+  <button id="add-svc" onclick="addSvc()">+ add service</button>
+</div>
+
+<h2>Alert Thresholds</h2>
+<div class="section">
+  <div class="field"><label>CPU % threshold</label><input id="cpu-t" type="number" value="80" min="1" max="100"></div>
+  <div class="field"><label>RAM % threshold</label><input id="ram-t" type="number" value="80" min="1" max="100"></div>
+  <div class="field"><label>GPU temp °C threshold</label><input id="gpu-t" type="number" value="80" min="1"></div>
+  <div class="field toggle">
+    <input type="checkbox" id="offline-notify" checked>
+    <label for="offline-notify" style="margin:0">Notify when services go offline</label>
+  </div>
+</div>
+
+<div class="submit">
+  <button id="save-btn" onclick="save()">SAVE CONFIG</button>
+  <div id="status"></div>
+</div>
+
+<script>
+var _n = 0;
+function addSvc(name, port, cmd) {
+  var id = ++_n;
+  var row = document.createElement('div'); row.className='svc-row'; row.id='svc-'+id;
+  row.innerHTML='<input type="text" placeholder="service name" value="'+(name||'')+'">'
+    +'<input type="number" placeholder="port" value="'+(port||'')+'" style="max-width:80px">'
+    +'<input type="text" placeholder="start command (optional)" value="'+(cmd||'')+'">'
+    +'<button onclick="document.getElementById(\'svc-'+id+'\').remove()">x</button>';
+  document.getElementById('svc-list').appendChild(row);
+}
+function getSvcs() {
+  var out=[];
+  document.querySelectorAll('.svc-row').forEach(function(row) {
+    var ins=row.querySelectorAll('input');
+    var name=ins[0].value.trim(), port=parseInt(ins[1].value,10), cmd=ins[2].value.trim();
+    if(name&&port){var s={name:name,port:port}; if(cmd)s.start_command=cmd; out.push(s);}
+  });
+  return out;
+}
+async function save() {
+  var btn=document.getElementById('save-btn'), st=document.getElementById('status');
+  btn.disabled=true; btn.textContent='SAVING...';
+  var body={
+    title:document.getElementById('title').value.trim()||'Ops Dashboard',
+    default_model:document.getElementById('model').value.trim()||'ops-brain',
+    training_threshold:parseInt(document.getElementById('threshold').value,10)||100,
+    brain_enabled:document.getElementById('brain-enabled').checked,
+    brain_url:document.getElementById('brain-url').value.trim()||'http://localhost:8000',
+    services:getSvcs(),
+    cpu_threshold:parseInt(document.getElementById('cpu-t').value,10)||80,
+    ram_threshold:parseInt(document.getElementById('ram-t').value,10)||80,
+    gpu_temp_threshold:parseInt(document.getElementById('gpu-t').value,10)||80,
+    offline_notify:document.getElementById('offline-notify').checked,
+  };
+  try {
+    var r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var data=await r.json();
+    if(data.saved){
+      st.style.color='#00ff41'; st.textContent='Config saved — redirecting...';
+      setTimeout(function(){window.location.href='/dashboard';},1200);
+    } else {
+      st.style.color='#e74c3c'; st.textContent='Save failed.';
+      btn.disabled=false; btn.textContent='SAVE CONFIG';
+    }
+  } catch(e) {
+    st.style.color='#e74c3c'; st.textContent='Error: '+e.message;
+    btn.disabled=false; btn.textContent='SAVE CONFIG';
+  }
+}
+// Pre-populate when editing existing config
+(async function() {
+  try {
+    var r=await fetch('/api/config'); if(!r.ok)return;
+    var cfg=await r.json();
+    if(cfg.title)document.getElementById('title').value=cfg.title;
+    if(cfg.default_model)document.getElementById('model').value=cfg.default_model;
+    if(cfg.training_threshold)document.getElementById('threshold').value=cfg.training_threshold;
+    if(cfg.brain_enabled){
+      document.getElementById('brain-enabled').checked=true;
+      document.getElementById('brain-url-row').style.display='block';
+    }
+    if(cfg.alerts){
+      if(cfg.alerts.cpu_threshold)document.getElementById('cpu-t').value=cfg.alerts.cpu_threshold;
+      if(cfg.alerts.ram_threshold)document.getElementById('ram-t').value=cfg.alerts.ram_threshold;
+      if(cfg.alerts.gpu_temp_threshold)document.getElementById('gpu-t').value=cfg.alerts.gpu_temp_threshold;
+      document.getElementById('offline-notify').checked=cfg.alerts.offline_notify!==false;
+    }
+    (cfg.services||[]).forEach(function(s){addSvc(s.name,s.port,s.start_command);});
+  } catch(_){}
+})();
+</script>
+</body>
+</html>

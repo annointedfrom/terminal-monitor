@@ -1,0 +1,25 @@
+# Terminal Monitor — config.example.yaml
+# Copy to config.yaml and fill in your values.
+# config.yaml is gitignored — personal data never ships.
+
+dashboard:
+  title: "Ops Dashboard"        # shown in browser tab
+  default_model: "ops-brain"    # default Ollama model for CHAT tab
+  training_threshold: 100       # fine-tune "ready" badge threshold
+
+brain:
+  enabled: false                # set true to sync scans to NeuroLinked
+  url: "http://localhost:8000"  # NeuroLinked base URL
+
+services:                       # services to track on MCP / Services tab
+  - name: "my-agent"
+    port: 8090
+    start_command: "cd /path/to/my-agent && python -m uvicorn main:app --port 8090"
+  # - name: "another-service"
+  #   port: 8091
+
+alerts:
+  cpu_threshold: 80             # % CPU before browser notification fires
+  ram_threshold: 80             # % RAM before browser notification fires
+  gpu_temp_threshold: 80        # degrees C GPU temp before alert fires
+  offline_notify: true          # notify when a listed service goes offline

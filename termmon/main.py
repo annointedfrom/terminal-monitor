@@ -270,6 +270,19 @@ class ChatRequest(BaseModel):
     model: str = "ops-brain"
 
 
+class SetupRequest(BaseModel):
+    title: str = "Ops Dashboard"
+    default_model: str = "ops-brain"
+    training_threshold: int = 100
+    brain_enabled: bool = False
+    brain_url: str = "http://localhost:8000"
+    services: list[dict] = []
+    cpu_threshold: int = 80
+    ram_threshold: int = 80
+    gpu_temp_threshold: int = 80
+    offline_notify: bool = True
+
+
 @app.post("/api/chat")
 async def chat_with_ai(req: ChatRequest):
     scan = await _full_scan()
@@ -333,7 +346,8 @@ async def restart_agent(agent_id: str):
 
 @app.get("/api/training/status")
 async def training_status():
-    threshold = 100
+    settings = get_settings()
+    threshold = settings.dashboard.training_threshold
     count = 0
     if _TRAINING_PATH.exists():
         count = sum(
@@ -377,6 +391,40 @@ async def terminal_ws(websocket: WebSocket):
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "config.yaml"
 _DASHBOARD = pathlib.Path(__file__).parent / "dashboard.html"
+_SETUP = pathlib.Path(__file__).parent / "setup.html"
+
+
+@app.get("/setup")
+async def setup_page():
+    return FileResponse(_SETUP, media_type="text/html")
+
+
+@app.post("/api/setup")
+async def setup_post(req: SetupRequest):
+    from termmon.config import (
+        Settings, DashboardConfig, BrainConfig, ServiceConfig, AlertsConfig,
+    )
+    settings = Settings(
+        dashboard=DashboardConfig(
+            title=req.title,
+            default_model=req.default_model,
+            training_threshold=req.training_threshold,
+        ),
+        brain=BrainConfig(enabled=req.brain_enabled, url=req.brain_url),
+        services=[
+            ServiceConfig(name=s["name"], port=s["port"], start_command=s.get("start_command"))
+            for s in req.services
+            if s.get("name") and s.get("port")
+        ],
+        alerts=AlertsConfig(
+            cpu_threshold=req.cpu_threshold,
+            ram_threshold=req.ram_threshold,
+            gpu_temp_threshold=req.gpu_temp_threshold,
+            offline_notify=req.offline_notify,
+        ),
+    )
+    write_settings(settings)
+    return {"saved": True}
 
 
 @app.get("/dashboard")

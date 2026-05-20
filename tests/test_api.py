@@ -333,3 +333,32 @@ def test_api_alerts_returns_list_when_data_present():
     finally:
         main_mod._last_scan = None
         main_mod._last_resources = None
+
+
+def test_setup_get_returns_html():
+    r = client.get("/setup")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_setup_post_saves_config(tmp_path):
+    import termmon.main as main_mod
+    import termmon.config as cfg_mod
+    config_path = tmp_path / "config.yaml"
+    with patch.object(main_mod, "_CONFIG_PATH", config_path), \
+         patch.object(cfg_mod, "_CONFIG_PATH", config_path):
+        cfg_mod._settings = None
+        r = client.post("/api/setup", json={
+            "title": "Test Dashboard",
+            "default_model": "llama3.2:3b",
+            "training_threshold": 50,
+            "brain_enabled": False,
+            "brain_url": "http://localhost:8000",
+            "services": [{"name": "my-agent", "port": 8090}],
+            "cpu_threshold": 70,
+            "ram_threshold": 75,
+            "gpu_temp_threshold": 85,
+            "offline_notify": True,
+        })
+    assert r.status_code == 200
+    assert r.json()["saved"] is True
