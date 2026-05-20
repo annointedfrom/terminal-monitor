@@ -1,0 +1,15 @@
+services:
+  terminal-monitor:
+    build: .
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data
+    environment:
+      # Reaches Ollama on the host machine (works on Mac, Windows, Linux)
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      # Makes host.docker.internal resolve on Linux (no-op on Mac/Windows Docker Desktop)
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
