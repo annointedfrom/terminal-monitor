@@ -306,3 +306,30 @@ def test_api_history_structure():
     assert "resources" in data
     assert isinstance(data["scan"], list)
     assert isinstance(data["resources"], list)
+
+
+def test_api_alerts_empty_when_no_cached_data():
+    import termmon.main as main_mod
+    orig_scan, orig_res = main_mod._last_scan, main_mod._last_resources
+    main_mod._last_scan = None
+    main_mod._last_resources = None
+    try:
+        r = client.get("/api/alerts/current")
+        assert r.status_code == 200
+        assert r.json()["alerts"] == []
+    finally:
+        main_mod._last_scan = orig_scan
+        main_mod._last_resources = orig_res
+
+
+def test_api_alerts_returns_list_when_data_present():
+    import termmon.main as main_mod
+    main_mod._last_scan = {"ports": [], "mcp_servers": [], "summary": {}}
+    main_mod._last_resources = {"cpu_percent": 10.0, "memory": {"percent": 20.0}, "disk": {"percent": 5.0}}
+    try:
+        r = client.get("/api/alerts/current")
+        assert r.status_code == 200
+        assert isinstance(r.json()["alerts"], list)
+    finally:
+        main_mod._last_scan = None
+        main_mod._last_resources = None

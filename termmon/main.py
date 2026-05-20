@@ -18,6 +18,7 @@ from termmon import brain
 from termmon.config import get_settings, write_settings
 from termmon.scanner import ollama
 from termmon.scanner import claude_ai
+from termmon.scanner.alerts import evaluate_alerts
 from termmon.scanner.health import check_health
 from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
@@ -140,6 +141,14 @@ async def get_history():
         "scan": load_scan_history(n=30),
         "resources": load_resource_history(n=30),
     }
+
+
+@app.get("/api/alerts/current")
+async def get_current_alerts():
+    if _last_scan is None or _last_resources is None:
+        return {"alerts": []}
+    settings = get_settings()
+    return {"alerts": evaluate_alerts(_last_scan, _last_resources, settings)}
 
 
 @app.get("/api/config")
