@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import json
 import logging
+import socket
 from pathlib import Path
 from typing import Optional
 
 import psutil
+import yaml
 
 logger = logging.getLogger(__name__)
+
+_HUB_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "agent-hub" / "hub-config.yaml"
 
 
 def _settings_path() -> Path:
@@ -36,6 +40,44 @@ def _find_process(token: str) -> tuple[bool, Optional[int]]:
     return False, None
 
 
+def _port_open(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
+def _hub_services(config_path: Path = _HUB_CONFIG_PATH) -> list[dict]:
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        agents = data.get("agents", [])
+    except Exception as exc:
+        logger.debug("Could not read hub config from %s: %s", config_path, exc)
+        return []
+
+    results = []
+    for agent in agents:
+        port = agent.get("port")
+        running = _port_open(port) if port else False
+        pid_found: Optional[int] = None
+        if running and port:
+            for conn in psutil.net_connections(kind="inet"):
+                if conn.laddr and conn.laddr.port == port and conn.status == "LISTEN":
+                    pid_found = conn.pid
+                    break
+        results.append({
+            "name": agent.get("name", agent.get("id", "?")),
+            "command": agent.get("start_command", ""),
+            "running": running,
+            "pid": pid_found,
+            "port": port,
+            "type": "service",
+        })
+    return results
+
+
 def scan_mcp(settings_path: Optional[Path] = None) -> list[dict]:
     if settings_path is None:
         settings_path = _settings_path()
@@ -59,6 +101,8 @@ def scan_mcp(settings_path: Optional[Path] = None) -> list[dict]:
             "command": full_command,
             "running": running,
             "pid": pid,
+            "type": "mcp",
         })
 
+    results.extend(_hub_services())
     return results

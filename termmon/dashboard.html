@@ -79,6 +79,18 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .change-pill { display: inline-block; font-size: 7px; padding: 0 3px; border-radius: 2px; margin-right: 2px; }
 .pill-new { background: #0a2a0a; color: #2ecc71; }
 .pill-gone { background: #2a0a0a; color: #e74c3c; }
+.core-bars { display: flex; gap: 2px; align-items: flex-end; height: 18px; margin-top: 3px; overflow: hidden; }
+.core-bar { flex: 1; min-width: 3px; border-radius: 1px 1px 0 0; }
+.res-sub-label { color: #444; font-size: 8px; margin-top: 2px; margin-bottom: 10px; }
+.gpu-block { background: #060d14; border: 1px solid #1a2a3a; border-radius: 3px; padding: 6px 8px; margin-bottom: 8px; }
+.gpu-title { color: #5a9acf; font-size: 8px; letter-spacing: 1px; margin-bottom: 5px; }
+.gpu-meta-row { display: flex; gap: 12px; margin-top: 4px; }
+.gpu-meta-key { color: #333; font-size: 7px; letter-spacing: 1px; }
+.gpu-meta-val { color: #7abf7a; font-size: 9px; }
+.energy-block { background: #050508; border: 1px solid #1a1a2a; border-radius: 3px; padding: 6px 8px; margin-bottom: 8px; }
+.energy-block-title { color: #8888cc; font-size: 8px; letter-spacing: 1px; margin-bottom: 5px; }
+.hog-row { display: grid; grid-template-columns: 1fr 60px 50px; gap: 4px; padding: 2px 0; border-bottom: 1px solid #0a0a0a; align-items: center; }
+.alert-row { background: #150a00; border: 1px solid #3a2000; border-radius: 2px; padding: 4px 6px; margin-bottom: 4px; color: #e67e22; font-size: 8px; }
 </style>
 </head>
 <body>
@@ -181,6 +193,7 @@ var _scanHistory = [];
 var _resHistory  = [];
 var _chatHistory = [];
 var _chatLoading = false;
+var _lastResData  = null;
 
 // ── Drag-to-resize stat header ────────────────────────────────
 var _statHeader = document.getElementById('stat-header');
@@ -384,27 +397,35 @@ function renderMCP(mcps) {
     var nameEl = document.createElement('span');
     nameEl.style.cssText = 'color:#ccc;font-size:9px;';
     nameEl.textContent = m.name;
-    var bridgeEl = document.createElement('span');
-    bridgeEl.style.fontSize = '8px';
-    bridgeEl.style.color = m.running ? '#2ecc71' : '#444';
-    bridgeEl.textContent = m.running ? '✓ bridge' : '— bridge';
-    var svcPort = MCP_PORT_MAP[m.name];
-    var svcEl = document.createElement('span');
-    svcEl.style.fontSize = '8px';
-    if (svcPort !== undefined) {
-      var svcUp = activePorts.has(svcPort);
-      svcEl.style.color = svcUp ? '#2ecc71' : '#e74c3c';
-      svcEl.textContent = svcUp ? '✓ api :' + svcPort : '✗ api :' + svcPort;
-    } else {
-      svcEl.style.color = '#333';
-      svcEl.textContent = '—';
-    }
+    var statusEl = document.createElement('span');
+    statusEl.style.fontSize = '8px';
+    var portEl = document.createElement('span');
+    portEl.style.fontSize = '8px';
     var pidEl = document.createElement('span');
     pidEl.style.cssText = 'color:#555;font-size:8px;';
     pidEl.textContent = m.pid || '—';
+
+    if (m.type === 'service') {
+      statusEl.style.color = m.running ? '#2ecc71' : '#e74c3c';
+      statusEl.textContent = m.running ? '✓ online' : '✗ offline';
+      portEl.style.color = m.running ? '#2ecc71' : '#333';
+      portEl.textContent = m.port ? ':' + m.port : '—';
+    } else {
+      statusEl.style.color = m.running ? '#2ecc71' : '#444';
+      statusEl.textContent = m.running ? '✓ bridge' : '— bridge';
+      var svcPort = MCP_PORT_MAP[m.name];
+      if (svcPort !== undefined) {
+        var svcUp = activePorts.has(svcPort);
+        portEl.style.color = svcUp ? '#2ecc71' : '#e74c3c';
+        portEl.textContent = svcUp ? '✓ api :' + svcPort : '✗ api :' + svcPort;
+      } else {
+        portEl.style.color = '#333';
+        portEl.textContent = '—';
+      }
+    }
     row.appendChild(nameEl);
-    row.appendChild(bridgeEl);
-    row.appendChild(svcEl);
+    row.appendChild(statusEl);
+    row.appendChild(portEl);
     row.appendChild(pidEl);
     container.appendChild(row);
   });
@@ -442,6 +463,7 @@ async function fetchResources() {
     var r = await fetch('/api/resources');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var data = await r.json();
+    _lastResData = data;
     renderResources(data);
     var cpu = data.cpu_percent || 0;
     var energyEl = document.getElementById('stat-energy');
@@ -450,48 +472,103 @@ async function fetchResources() {
     else if (cpu > 40) { energyEl.textContent = 'BUSY'; energyEl.className = 'stat-num warn'; }
     else { energyEl.textContent = 'OK'; energyEl.className = 'stat-num ok'; }
     energySub.textContent = 'cpu ' + cpu.toFixed(1) + '%';
-    _resHistory.push({ ts: Date.now(), cpu: cpu, ramPct: data.memory ? data.memory.percent : 0, ramRaw: data.memory || null, diskPct: data.disk ? data.disk.percent : 0 });
+    var gpuUtil = data.gpus && data.gpus.length ? (data.gpus[0].util_pct || 0) : undefined;
+    _resHistory.push({ ts: Date.now(), cpu: cpu, ramPct: data.memory ? data.memory.percent : 0, ramRaw: data.memory || null, diskPct: data.disk ? data.disk.percent : 0, gpuUtil: gpuUtil });
     if (_resHistory.length > 30) _resHistory.shift();
   } catch(e) { /* non-fatal */ }
+}
+
+function _barColor(pct) { return pct > 70 ? '#e74c3c' : pct > 40 ? '#e67e22' : '#2ecc71'; }
+function _fmtBytes(b) { return b >= 1073741824 ? (b/1073741824).toFixed(1)+' GB' : (b/1048576).toFixed(0)+' MB'; }
+
+function _addBarInto(parent, label, pct, subLabel) {
+  var color = _barColor(pct);
+  var sec = document.createElement('div'); sec.style.marginBottom = '5px';
+  var lr = document.createElement('div'); lr.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:2px;';
+  var l = document.createElement('span'); l.style.cssText = 'color:#555;font-size:8px;'; l.textContent = label;
+  var r2 = document.createElement('span'); r2.style.cssText = 'color:' + color + ';font-size:8px;'; r2.textContent = subLabel;
+  lr.appendChild(l); lr.appendChild(r2);
+  var bg = document.createElement('div'); bg.className = 'res-bar-bg';
+  var bar = document.createElement('div'); bar.className = 'res-bar';
+  bar.style.cssText = 'width:' + Math.min(pct,100) + '%;background:' + color + ';';
+  bg.appendChild(bar); sec.appendChild(lr); sec.appendChild(bg); parent.appendChild(sec);
 }
 
 function renderResources(data) {
   var container = document.getElementById('res-content');
   container.innerHTML = '';
-  function fmtBytes(b) { return b >= 1073741824 ? (b/1073741824).toFixed(1) + ' GB' : (b/1048576).toFixed(0) + ' MB'; }
-  function barColor(pct) { return pct > 70 ? '#e74c3c' : pct > 40 ? '#e67e22' : '#2ecc71'; }
-  function addBar(label, pct, subLabel) {
-    var color = barColor(pct);
-    var sec = document.createElement('div');
-    sec.className = 'res-section';
-    var labelRow = document.createElement('div');
-    labelRow.className = 'res-label-row';
-    var lSpan = document.createElement('span');
-    lSpan.style.cssText = 'color:#888;font-size:9px;';
-    lSpan.textContent = label;
-    var rSpan = document.createElement('span');
-    rSpan.style.cssText = 'color:' + color + ';font-size:9px;';
-    rSpan.textContent = subLabel;
-    labelRow.appendChild(lSpan);
-    labelRow.appendChild(rSpan);
-    var barBg = document.createElement('div');
-    barBg.className = 'res-bar-bg';
-    var bar = document.createElement('div');
-    bar.className = 'res-bar';
+  function addBar(label, pct, subLabel, subText) {
+    var color = _barColor(pct);
+    var sec = document.createElement('div'); sec.className = 'res-section';
+    var labelRow = document.createElement('div'); labelRow.className = 'res-label-row';
+    var lSpan = document.createElement('span'); lSpan.style.cssText = 'color:#888;font-size:9px;'; lSpan.textContent = label;
+    var rSpan = document.createElement('span'); rSpan.style.cssText = 'color:' + color + ';font-size:9px;'; rSpan.textContent = subLabel;
+    labelRow.appendChild(lSpan); labelRow.appendChild(rSpan);
+    var barBg = document.createElement('div'); barBg.className = 'res-bar-bg';
+    var bar = document.createElement('div'); bar.className = 'res-bar';
     bar.style.cssText = 'width:' + Math.min(pct,100) + '%;background:' + color + ';';
-    barBg.appendChild(bar);
-    sec.appendChild(labelRow);
-    sec.appendChild(barBg);
+    barBg.appendChild(bar); sec.appendChild(labelRow); sec.appendChild(barBg);
+    if (subText) { var sub = document.createElement('div'); sub.className = 'res-sub-label'; sub.textContent = subText; sec.appendChild(sub); }
     container.appendChild(sec);
   }
-  addBar('CPU', data.cpu_percent || 0, (data.cpu_percent||0).toFixed(1) + '%');
+
+  var freqTxt = data.cpu_freq_mhz ? data.cpu_freq_mhz + ' MHz' + (data.cpu_freq_max_mhz ? ' / ' + data.cpu_freq_max_mhz + ' max' : '') : null;
+  addBar('CPU', data.cpu_percent || 0, (data.cpu_percent||0).toFixed(1) + '%', freqTxt);
+
+  if (data.cpu_per_core && data.cpu_per_core.length) {
+    var coresSec = document.createElement('div'); coresSec.className = 'res-section';
+    var coresLabel = document.createElement('div'); coresLabel.style.cssText = 'color:#444;font-size:8px;margin-bottom:2px;';
+    coresLabel.textContent = 'CORES × ' + data.cpu_per_core.length;
+    coresSec.appendChild(coresLabel);
+    var coreBars = document.createElement('div'); coreBars.className = 'core-bars';
+    data.cpu_per_core.forEach(function(v) {
+      var b = document.createElement('div'); b.className = 'core-bar';
+      b.style.height = Math.max(2, Math.round(v/100*18)) + 'px';
+      b.style.background = _barColor(v); b.title = v.toFixed(1) + '%';
+      coreBars.appendChild(b);
+    });
+    coresSec.appendChild(coreBars); container.appendChild(coresSec);
+  }
+
   if (data.memory) {
     var m = data.memory;
-    addBar('RAM', m.percent || 0, fmtBytes(m.used) + ' / ' + fmtBytes(m.total) + ' (' + (m.percent||0).toFixed(1) + '%)');
+    addBar('RAM', m.percent || 0, _fmtBytes(m.used) + ' / ' + _fmtBytes(m.total) + ' (' + (m.percent||0).toFixed(1) + '%)');
   }
   if (data.disk) {
     var d = data.disk;
-    addBar('DISK', d.percent || 0, fmtBytes(d.used) + ' / ' + fmtBytes(d.total) + ' (' + (d.percent||0).toFixed(1) + '%)');
+    addBar('DISK', d.percent || 0, _fmtBytes(d.used) + ' / ' + _fmtBytes(d.total) + ' (' + (d.percent||0).toFixed(1) + '%)');
+  }
+
+  if (data.gpus && data.gpus.length) {
+    var gpuHeader = document.createElement('div');
+    gpuHeader.style.cssText = 'color:#5a9acf;font-size:8px;letter-spacing:1px;margin:10px 0 4px;';
+    gpuHeader.textContent = 'GPU'; container.appendChild(gpuHeader);
+    data.gpus.forEach(function(gpu) {
+      var block = document.createElement('div'); block.className = 'gpu-block';
+      var title = document.createElement('div'); title.className = 'gpu-title'; title.textContent = gpu.name || 'GPU';
+      block.appendChild(title);
+      if (gpu.util_pct !== null) _addBarInto(block, 'UTILIZATION', gpu.util_pct || 0, (gpu.util_pct||0).toFixed(0) + '%');
+      if (gpu.vram_used_mb !== null && gpu.vram_total_mb) {
+        var vramPct = gpu.vram_total_mb ? (gpu.vram_used_mb / gpu.vram_total_mb * 100) : 0;
+        _addBarInto(block, 'VRAM', vramPct, _fmtBytes(gpu.vram_used_mb*1048576) + ' / ' + _fmtBytes(gpu.vram_total_mb*1048576));
+      }
+      var metaRow = document.createElement('div'); metaRow.className = 'gpu-meta-row';
+      if (gpu.temp_c !== null) {
+        var tc = gpu.temp_c > 80 ? '#e74c3c' : gpu.temp_c > 60 ? '#e67e22' : '#7abf7a';
+        var tDiv = document.createElement('div');
+        var tKey = document.createElement('div'); tKey.className = 'gpu-meta-key'; tKey.textContent = 'TEMP';
+        var tVal = document.createElement('div'); tVal.className = 'gpu-meta-val'; tVal.style.color = tc; tVal.textContent = gpu.temp_c.toFixed(0) + '°C';
+        tDiv.appendChild(tKey); tDiv.appendChild(tVal); metaRow.appendChild(tDiv);
+      }
+      if (gpu.power_w !== null) {
+        var pDiv = document.createElement('div');
+        var pKey = document.createElement('div'); pKey.className = 'gpu-meta-key'; pKey.textContent = 'POWER';
+        var pVal = document.createElement('div'); pVal.className = 'gpu-meta-val'; pVal.textContent = gpu.power_w.toFixed(1) + ' W';
+        pDiv.appendChild(pKey); pDiv.appendChild(pVal); metaRow.appendChild(pDiv);
+      }
+      if (metaRow.children.length) block.appendChild(metaRow);
+      container.appendChild(block);
+    });
   }
 }
 
@@ -555,35 +632,105 @@ function renderEnergy() {
   var container = document.getElementById('energy-content');
   if (!container) return;
   container.innerHTML = '';
-  if (_resHistory.length === 0) {
+  var data = _lastResData;
+  if (!data && _resHistory.length === 0) {
     container.innerHTML = '<div style="color:#333;font-size:9px;padding:10px 0;">Collecting data…</div>';
     return;
   }
-  function fmtBytes(b) { return b >= 1073741824 ? (b/1073741824).toFixed(1)+' GB' : (b/1048576).toFixed(0)+' MB'; }
-  function barColor(pct) { return pct > 70 ? '#e74c3c' : pct > 40 ? '#e67e22' : '#2ecc71'; }
-  var latest = _resHistory[_resHistory.length - 1];
-  function addTrend(label, values, currentLabel) {
-    var sec = document.createElement('div'); sec.className = 'res-section';
-    var labelRow = document.createElement('div'); labelRow.className = 'res-label-row';
-    var lSpan = document.createElement('span'); lSpan.style.cssText = 'color:#888;font-size:9px;'; lSpan.textContent = label;
-    var rSpan = document.createElement('span'); rSpan.style.cssText = 'color:'+barColor(values[values.length-1])+';font-size:9px;'; rSpan.textContent = currentLabel;
-    labelRow.appendChild(lSpan); labelRow.appendChild(rSpan);
-    var spark = document.createElement('div'); spark.className = 'sparkline';
-    var refMax = Math.max.apply(null, values.concat([5]));
-    values.forEach(function(v) {
-      var bar = document.createElement('div'); bar.className = 'spark-bar';
-      bar.style.height = Math.max(2, Math.round((v / refMax) * 28)) + 'px';
-      bar.style.background = barColor(v);
-      spark.appendChild(bar);
+
+  // GPU block
+  if (data && data.gpus && data.gpus.length) {
+    data.gpus.forEach(function(gpu) {
+      var block = document.createElement('div'); block.className = 'energy-block';
+      var title = document.createElement('div'); title.className = 'energy-block-title';
+      title.textContent = 'GPU — ' + (gpu.name || 'unknown'); block.appendChild(title);
+      var grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;';
+      function addStat(k, v, color) {
+        var cell = document.createElement('div');
+        var key = document.createElement('div'); key.className = 'gpu-meta-key'; key.textContent = k;
+        var val = document.createElement('div'); val.className = 'gpu-meta-val'; if (color) val.style.color = color; val.textContent = v;
+        cell.appendChild(key); cell.appendChild(val); grid.appendChild(cell);
+      }
+      if (gpu.temp_c !== null) { var tc = gpu.temp_c > 80 ? '#e74c3c' : gpu.temp_c > 60 ? '#e67e22' : '#7abf7a'; addStat('TEMP', gpu.temp_c.toFixed(0)+'°C', tc); }
+      if (gpu.util_pct !== null) addStat('UTIL', (gpu.util_pct||0).toFixed(0)+'%', _barColor(gpu.util_pct||0));
+      if (gpu.vram_used_mb !== null && gpu.vram_total_mb) {
+        var vp = gpu.vram_used_mb/gpu.vram_total_mb*100;
+        addStat('VRAM', _fmtBytes(gpu.vram_used_mb*1048576)+' / '+_fmtBytes(gpu.vram_total_mb*1048576), _barColor(vp));
+      }
+      if (gpu.power_w !== null) addStat('POWER', gpu.power_w.toFixed(1)+'W', null);
+      if (grid.children.length) block.appendChild(grid);
+      var gpuVals = _resHistory.map(function(r) { return r.gpuUtil !== undefined ? r.gpuUtil : null; }).filter(function(v) { return v !== null; });
+      if (gpuVals.length > 1) {
+        var spark = document.createElement('div'); spark.className = 'sparkline';
+        var refMax = Math.max.apply(null, gpuVals.concat([5]));
+        gpuVals.forEach(function(v) { var b = document.createElement('div'); b.className = 'spark-bar'; b.style.height = Math.max(2, Math.round(v/refMax*28))+'px'; b.style.background = _barColor(v); spark.appendChild(b); });
+        block.appendChild(spark);
+      }
+      container.appendChild(block);
     });
-    sec.appendChild(labelRow); sec.appendChild(spark);
-    container.appendChild(sec);
   }
-  addTrend('CPU', _resHistory.map(function(r) { return r.cpu; }), latest.cpu.toFixed(1) + '%');
-  var mem = latest.ramRaw;
-  var ramLabel = mem ? fmtBytes(mem.used)+' / '+fmtBytes(mem.total)+' ('+latest.ramPct.toFixed(1)+'%)' : latest.ramPct.toFixed(1)+'%';
-  addTrend('RAM', _resHistory.map(function(r) { return r.ramPct; }), ramLabel);
-  addTrend('DISK', _resHistory.map(function(r) { return r.diskPct; }), latest.diskPct.toFixed(1) + '%');
+
+  // CPU block
+  if (data) {
+    var cpuBlock = document.createElement('div'); cpuBlock.className = 'energy-block';
+    var cpuTitle = document.createElement('div'); cpuTitle.className = 'energy-block-title';
+    cpuTitle.textContent = 'CPU' + (data.cpu_freq_mhz ? ' — ' + data.cpu_freq_mhz + ' MHz' : ''); cpuBlock.appendChild(cpuTitle);
+    if (data.cpu_per_core && data.cpu_per_core.length) {
+      var coreBars = document.createElement('div'); coreBars.className = 'core-bars';
+      data.cpu_per_core.forEach(function(v, i) {
+        var b = document.createElement('div'); b.className = 'core-bar';
+        b.style.height = Math.max(2, Math.round(v/100*18))+'px'; b.style.background = _barColor(v); b.title = 'Core '+i+': '+v.toFixed(1)+'%';
+        coreBars.appendChild(b);
+      });
+      cpuBlock.appendChild(coreBars);
+    }
+    if (_resHistory.length > 1) {
+      var cpuSpark = document.createElement('div'); cpuSpark.className = 'sparkline'; cpuSpark.style.marginTop = '4px';
+      var cpuVals = _resHistory.map(function(r) { return r.cpu; });
+      var cpuMax = Math.max.apply(null, cpuVals.concat([5]));
+      cpuVals.forEach(function(v) { var b = document.createElement('div'); b.className = 'spark-bar'; b.style.height = Math.max(2, Math.round(v/cpuMax*28))+'px'; b.style.background = _barColor(v); cpuSpark.appendChild(b); });
+      cpuBlock.appendChild(cpuSpark);
+    }
+    container.appendChild(cpuBlock);
+  }
+
+  // Top resource hogs
+  if (_lastScan && _lastScan.ports && _lastScan.ports.length) {
+    var hogBlock = document.createElement('div'); hogBlock.className = 'energy-block';
+    var hogTitle = document.createElement('div'); hogTitle.className = 'energy-block-title'; hogTitle.textContent = 'TOP RESOURCE HOGS'; hogBlock.appendChild(hogTitle);
+    var hogHeader = document.createElement('div'); hogHeader.className = 'hog-row';
+    hogHeader.style.cssText = 'color:#333;font-size:7px;letter-spacing:1px;border-bottom:1px solid #1a1a1a;padding-bottom:3px;';
+    ['PROCESS','RAM','PORT'].forEach(function(h) { var s = document.createElement('span'); s.textContent = h; hogHeader.appendChild(s); });
+    hogBlock.appendChild(hogHeader);
+    var seen = {}; var sorted = _lastScan.ports.slice().sort(function(a,b) { return (b.memory_mb||0)-(a.memory_mb||0); });
+    sorted.filter(function(p) { if (seen[p.process]) return false; seen[p.process] = true; return true; }).slice(0,6).forEach(function(p) {
+      var row = document.createElement('div'); row.className = 'hog-row';
+      var mc = p.memory_mb > 1000 ? '#e74c3c' : p.memory_mb > 300 ? '#e67e22' : '#7abf7a';
+      var ns = document.createElement('span'); ns.style.cssText = 'color:#999;font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'; ns.textContent = p.process;
+      var ms = document.createElement('span'); ms.style.cssText = 'color:'+mc+';font-size:8px;'; ms.textContent = Math.round(p.memory_mb||0)+' MB';
+      var ps = document.createElement('span'); ps.style.cssText = 'color:#555;font-size:8px;'; ps.textContent = p.port || '—';
+      row.appendChild(ns); row.appendChild(ms); row.appendChild(ps); hogBlock.appendChild(row);
+    });
+    container.appendChild(hogBlock);
+  }
+
+  // Efficiency alerts
+  var alerts = [];
+  if (data) {
+    if (data.cpu_percent > 80) alerts.push('CPU at ' + data.cpu_percent.toFixed(1) + '% — check top hogs above');
+    if (data.memory && data.memory.percent > 80) alerts.push('RAM at ' + data.memory.percent.toFixed(1) + '% — consider closing unused apps');
+    if (data.gpus) data.gpus.forEach(function(gpu) {
+      if (gpu.temp_c !== null && gpu.temp_c > 80) alerts.push('GPU temp ' + gpu.temp_c + '°C — check cooling');
+      if (gpu.util_pct !== null && gpu.util_pct > 90) alerts.push('GPU util ' + gpu.util_pct + '% — high load');
+    });
+  }
+  if (alerts.length) {
+    var alertBlock = document.createElement('div'); alertBlock.className = 'energy-block'; alertBlock.style.borderColor = '#3a2000';
+    var alertTitle = document.createElement('div'); alertTitle.className = 'energy-block-title'; alertTitle.style.color = '#e67e22'; alertTitle.textContent = 'ALERTS'; alertBlock.appendChild(alertTitle);
+    alerts.forEach(function(a) { var row = document.createElement('div'); row.className = 'alert-row'; row.textContent = '⚠ ' + a; alertBlock.appendChild(row); });
+    container.appendChild(alertBlock);
+  }
 }
 
 function renderChat() {

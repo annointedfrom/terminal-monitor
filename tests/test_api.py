@@ -119,17 +119,24 @@ def test_get_resources_structure():
     mock_disk.free = 312000000000
     mock_disk.percent = 39.1
 
-    with patch("termmon.scanner.resources.psutil.cpu_percent", return_value=22.5), \
+    mock_freq = MagicMock()
+    mock_freq.current = 3200.0
+    mock_freq.max = 4800.0
+
+    with patch("termmon.scanner.resources.psutil.cpu_percent", return_value=[22.5, 18.0, 30.0, 20.0]), \
+         patch("termmon.scanner.resources.psutil.cpu_freq", return_value=mock_freq), \
          patch("termmon.scanner.resources.psutil.virtual_memory", return_value=mock_mem), \
          patch("termmon.scanner.resources.psutil.disk_usage", return_value=mock_disk):
         r = client.get("/api/resources")
 
     assert r.status_code == 200
     data = r.json()
-    assert data["cpu_percent"] == 22.5
+    assert data["cpu_percent"] == 22.6  # round(avg([22.5,18.0,30.0,20.0]), 1)
     assert data["memory"]["total"] == 17179869184
     assert data["memory"]["percent"] == 47.6
     assert data["disk"]["percent"] == 39.1
+    assert data["cpu_cores"] == 4
+    assert len(data["cpu_per_core"]) == 4
 
 
 def test_get_resources_live_schema():
