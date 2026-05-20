@@ -71,6 +71,11 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 #chat-send { background: #0d2040; border: 1px solid #1a4a7a; color: #3498db; font-size: 9px; padding: 3px 10px; cursor: pointer; border-radius: 2px; white-space: nowrap; }
 #chat-send:hover { background: #142a50; }
 #chat-send:disabled { opacity: 0.4; cursor: default; }
+.chat-feedback { display: flex; gap: 4px; margin-top: 3px; margin-bottom: 2px; justify-content: flex-end; }
+.fb-btn { background: none; border: 1px solid #1a1a1a; color: #333; font-size: 9px; padding: 1px 6px; border-radius: 2px; cursor: pointer; }
+.fb-btn:hover { border-color: #444; color: #888; }
+.fb-btn.saved { color: #2ecc71; border-color: #2ecc71; cursor: default; }
+.fb-btn.dismissed { color: #333; border-color: #111; cursor: default; opacity: 0.4; }
 .proc-detail { background: #080f18; border-left: 2px solid #1a4a7a; padding: 6px 10px; margin: -3px 0 6px 0; }
 .proc-detail-desc { color: #6a9cbf; font-size: 9px; line-height: 1.5; margin-bottom: 5px; }
 .proc-detail-grid { display: grid; grid-template-columns: 52px 1fr; gap: 2px 8px; }
@@ -800,6 +805,35 @@ function renderEnergy() {
   }
 }
 
+function _makeFeedbackBar(question, answer) {
+  var bar = document.createElement('div');
+  bar.className = 'chat-feedback';
+  var up = document.createElement('button');
+  up.className = 'fb-btn'; up.textContent = '▲ train';
+  up.title = 'Save this Q&A as training data for ops-brain';
+  var down = document.createElement('button');
+  down.className = 'fb-btn'; down.textContent = '✕';
+  down.title = 'Dismiss — do not save';
+  up.onclick = function() {
+    if (up.classList.contains('saved')) return;
+    fetch('/api/training/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question: question, answer: answer}),
+    }).then(function(r) { return r.json(); }).then(function() {
+      up.textContent = '✓ saved'; up.classList.add('saved');
+      down.classList.add('dismissed'); down.disabled = true;
+    }).catch(function() { up.textContent = '! error'; });
+  };
+  down.onclick = function() {
+    if (down.classList.contains('dismissed')) return;
+    down.classList.add('dismissed'); down.disabled = true;
+    up.classList.add('dismissed'); up.disabled = true;
+  };
+  bar.appendChild(up); bar.appendChild(down);
+  return bar;
+}
+
 function renderChat() {
   var msgs = document.getElementById('chat-msgs');
   if (!msgs) return;
@@ -811,11 +845,16 @@ function renderChat() {
     msgs.appendChild(sys);
     return;
   }
+  var lastQ = null;
   _chatHistory.forEach(function(entry) {
     var div = document.createElement('div');
     div.className = 'chat-msg ' + entry.role;
     div.textContent = entry.text;
     msgs.appendChild(div);
+    if (entry.role === 'you') { lastQ = entry.text; }
+    if (entry.role === 'ai' && lastQ) {
+      msgs.appendChild(_makeFeedbackBar(lastQ, entry.text));
+    }
   });
   msgs.scrollTop = msgs.scrollHeight;
 }

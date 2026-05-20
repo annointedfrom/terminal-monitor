@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -194,6 +195,27 @@ async def process_detail(pid: int):
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
 
+_TRAINING_PATH = pathlib.Path(__file__).parent.parent / "models" / "training_seed.jsonl"
+
+_SANITIZE_PATTERNS = [
+    (re.compile(r"C:\\Users\\[^\\]+", re.IGNORECASE), r"C:\\Users\\<user>"),
+    (re.compile(r"/home/[^/\s]+"), "/home/<user>"),
+    (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "<email>"),
+    (re.compile(r"\bsk-ant-[A-Za-z0-9\-]+"), "<api-key>"),
+]
+
+
+def _sanitize(text: str) -> str:
+    for pattern, replacement in _SANITIZE_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text.strip()
+
+
+class TrainingPair(BaseModel):
+    question: str
+    answer: str
+
+
 class ChatRequest(BaseModel):
     message: str
     model: str = "ops-brain"
@@ -241,6 +263,18 @@ async def chat_with_ai(req: ChatRequest):
 async def ollama_models():
     models = await ollama.list_models()
     return {"models": models, "available": len(models) > 0}
+
+
+@app.post("/api/training/save")
+async def save_training_pair(req: TrainingPair):
+    question = _sanitize(req.question)
+    answer = _sanitize(req.answer)
+    if not question or not answer:
+        return JSONResponse(status_code=400, content={"detail": "Empty question or answer"})
+    entry = json.dumps({"instruction": question, "output": answer}, ensure_ascii=False)
+    with open(_TRAINING_PATH, "a", encoding="utf-8") as f:
+        f.write(entry + "\n")
+    return {"saved": True, "instruction": question}
 
 
 @app.get("/api/process/descriptions")
