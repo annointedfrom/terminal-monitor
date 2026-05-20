@@ -1,0 +1,21 @@
+.venv/
+.venv-finetune/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Generated model artifacts (large binaries / personal data)
+models/checkpoints/
+models/*.gguf
+models/Modelfile.generated
+
+# Personal config (never ships to buyers)
+config.yaml
+
+# History data (personal machine state)
+data/
+
+# Model artifacts
+models/Modelfile
+models/training_seed.jsonl

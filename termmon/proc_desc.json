@@ -217,7 +217,6 @@
     "uvicorn": "Uvicorn ASGI server — serves FastAPI and Starlette web applications.",
     "uvicorn.exe": "Uvicorn ASGI server — serves FastAPI and Starlette web applications.",
     "node.exe": "Node.js — JavaScript server-side runtime. Used by many CLI tools, MCP servers, Next.js, and web backends.",
-    "Obsidian.exe": "Obsidian — Markdown note-taking app. Runs a local server on port 27123 for plugin and MCP access.",
     "chrome.exe": "Google Chrome browser.",
     "msedge.exe": "Microsoft Edge browser — Chromium-based; Microsoft's default Windows browser.",
     "msedgewebview2.exe": "Edge WebView2 — embedded Chromium browser component used by many Windows apps for web content.",

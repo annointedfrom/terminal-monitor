@@ -4,11 +4,14 @@ import logging
 
 import httpx
 
-BRAIN_URL = "http://localhost:8000"
+from termmon.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
 async def sync(scan_result: dict) -> None:
+    settings = get_settings()
+    brain_url = settings.brain.url
     summary = scan_result.get("summary", {})
     ports = scan_result.get("ports", [])
 
@@ -25,7 +28,7 @@ async def sync(scan_result: dict) -> None:
     async with httpx.AsyncClient() as client:
         try:
             await client.post(
-                f"{BRAIN_URL}/api/claude/remember",
+                f"{brain_url}/api/claude/remember",
                 json={
                     "text": text,
                     "source": "terminal-monitor",
@@ -34,7 +37,7 @@ async def sync(scan_result: dict) -> None:
                 timeout=5.0,
             )
             await client.post(
-                f"{BRAIN_URL}/api/claude/observe",
+                f"{brain_url}/api/claude/observe",
                 json={
                     "type": "action",
                     "content": (
