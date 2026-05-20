@@ -296,3 +296,13 @@ def test_api_config_safe_fields():
     # brain URL must NOT be exposed to frontend
     assert "url" not in data
     assert "brain_url" not in data
+
+
+def test_api_history_structure():
+    r = client.get("/api/history")
+    assert r.status_code == 200
+    data = r.json()
+    assert "scan" in data
+    assert "resources" in data
+    assert isinstance(data["scan"], list)
+    assert isinstance(data["resources"], list)

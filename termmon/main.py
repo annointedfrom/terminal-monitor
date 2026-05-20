@@ -23,6 +23,10 @@ from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
 from termmon.scanner.processes import scan_background_processes
 from termmon.scanner.resources import get_resources
+from termmon.scanner.history import (
+    append_scan, append_resource,
+    load_scan_history, load_resource_history,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +41,12 @@ def _load_proc_desc() -> dict[str, str]:
 
 _PROC_DESC: dict[str, str] = _load_proc_desc()
 _desc_cache: dict[str, str] = {}
+_last_scan: dict | None = None
+_last_resources: dict | None = None
 
 
 async def _full_scan() -> dict:
+    global _last_scan
     ports = scan_ports()
     ports = await check_health(ports)
     mcps = scan_mcp()
@@ -47,7 +54,7 @@ async def _full_scan() -> dict:
     process_names = {p["process"] for p in ports if p["process"] != "unknown"}
     port_pids = {p["pid"] for p in ports if p["pid"]}
     background = scan_background_processes(exclude_pids=port_pids)
-    return {
+    result = {
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "ports": ports,
         "background_processes": background,
@@ -58,6 +65,9 @@ async def _full_scan() -> dict:
             "process_count": len(process_names),
         },
     }
+    _last_scan = result
+    append_scan(result)
+    return result
 
 
 async def _brain_loop() -> None:
@@ -117,7 +127,19 @@ async def stats_process_count():
 
 @app.get("/api/resources")
 async def get_resources_endpoint():
-    return get_resources()
+    global _last_resources
+    result = get_resources()
+    _last_resources = result
+    append_resource(result)
+    return result
+
+
+@app.get("/api/history")
+async def get_history():
+    return {
+        "scan": load_scan_history(n=30),
+        "resources": load_resource_history(n=30),
+    }
 
 
 @app.get("/api/config")
