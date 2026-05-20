@@ -33,6 +33,7 @@ def test_loads_custom_values(tmp_path):
           offline_notify: false
     """), encoding="utf-8")
     import termmon.config as cfg_mod
+    cfg_mod._settings = None
     with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
         s = cfg_mod._load()
     assert s.dashboard.title == "My Ops"
@@ -48,6 +49,7 @@ def test_write_and_reload(tmp_path):
     import yaml
     import termmon.config as cfg_mod
     from termmon.config import Settings, DashboardConfig
+    cfg_mod._settings = None
     config_path = tmp_path / "config.yaml"
     s = Settings(dashboard=DashboardConfig(title="Written"))
     with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
@@ -60,6 +62,7 @@ def test_missing_sections_get_defaults(tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text("dashboard:\n  title: Partial\n", encoding="utf-8")
     import termmon.config as cfg_mod
+    cfg_mod._settings = None
     with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
         s = cfg_mod._load()
     assert s.alerts.cpu_threshold == 80

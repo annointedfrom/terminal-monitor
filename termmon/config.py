@@ -46,7 +46,9 @@ _settings: Optional[Settings] = None
 def _load() -> Settings:
     if not _CONFIG_PATH.exists():
         return Settings()
-    raw = yaml.safe_load(_CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    raw = yaml.safe_load(_CONFIG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raw = {}
     return Settings.model_validate(raw)
 
 
@@ -64,6 +66,7 @@ def reload_settings() -> Settings:
 
 
 def write_settings(settings: Settings) -> None:
+    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     data = settings.model_dump()
     _CONFIG_PATH.write_text(
         yaml.dump(data, default_flow_style=False, allow_unicode=True),
