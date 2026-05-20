@@ -1,0 +1,30 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Virtual environment
+.venv/
+
+# Personal data (gitignored, never ships in image)
+config.yaml
+data/
+models/Modelfile
+models/training_seed.jsonl
+models/checkpoints/
+models/*.gguf
+models/Modelfile.generated
+
+# Development-only files
+.git/
+tests/
+docs/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
