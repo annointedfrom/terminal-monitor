@@ -41,7 +41,10 @@
     "streamdeck.exe": "Elgato Stream Deck software — manages macro buttons on the Stream Deck hardware.",
     "VTube Studio.exe": "VTube Studio — VTuber avatar software that animates 2D models using face tracking.",
     "Moonlight.exe": "Moonlight — open-source NVIDIA GameStream / Sunshine client for remote game streaming.",
-    "sunshine.exe": "Sunshine — open-source game streaming host (pairs with Moonlight client)."
+    "sunshine.exe": "Sunshine — open-source game streaming host (pairs with Moonlight client).",
+    "Slippi Launcher.exe": "Slippi Launcher — launcher for Project Slippi, which adds online play and rollback netcode to Super Smash Bros. Melee on Dolphin.",
+    "Slippi.exe": "Slippi — Project Slippi client for Melee online play. Manages ranked matchmaking and replays.",
+    "playkey.exe": "Slippi Playkey helper — background process used by Slippi for authentication or session management."
   },
   "creative": {
     "Photoshop.exe": "Adobe Photoshop — industry-standard raster image editing and compositing software.",
@@ -131,7 +134,8 @@
     "HeidiSQL.exe": "HeidiSQL — lightweight GUI client for MySQL, MariaDB, and PostgreSQL databases.",
     "DBeaver.exe": "DBeaver — universal database GUI client supporting 80+ databases.",
     "TablePlus.exe": "TablePlus — modern database GUI for PostgreSQL, MySQL, SQLite, and more.",
-    "redis-cli.exe": "Redis CLI — command-line client for interacting with a Redis server."
+    "redis-cli.exe": "Redis CLI — command-line client for interacting with a Redis server.",
+    "StudioMCP.exe": "Roblox Studio MCP Server — MCP bridge that connects Claude and other AI agents directly into Roblox Studio for AI-assisted game development."
   },
   "browsers": {
     "firefox.exe": "Mozilla Firefox browser.",
@@ -171,6 +175,8 @@
     "LastPass.exe": "LastPass — cloud-based password manager desktop client.",
     "Dashlane.exe": "Dashlane — password manager and digital wallet desktop client.",
     "NordVPN.exe": "NordVPN — VPN client for encrypting network traffic and masking IP addresses.",
+    "nordvpn-service.exe": "NordVPN Service — Windows background service that manages VPN tunnel connections for NordVPN.",
+    "nordsec-threatprotection-service.exe": "NordVPN Threat Protection — background service that blocks malware, trackers, and intrusive ads at the DNS level.",
     "ExpressVPN.exe": "ExpressVPN — VPN client for privacy and geo-restricted content access.",
     "Mullvad VPN.exe": "Mullvad VPN — privacy-focused VPN client with no-logging policy.",
     "ProtonVPN.exe": "ProtonVPN — VPN by the makers of ProtonMail, focused on privacy.",

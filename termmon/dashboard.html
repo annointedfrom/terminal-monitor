@@ -274,7 +274,7 @@ async function fetchScan() {
     _secondsSinceUpdate = 0;
     setError(null);
     renderStatHeader(data);
-    renderProcesses(data.ports || []);
+    renderProcesses(data.ports || [], data.background_processes || []);
     renderMCP(data.mcp_servers || []);
     var mcps = data.mcp_servers || [];
     _scanHistory.push({
@@ -311,7 +311,7 @@ function renderStatHeader(data) {
   document.getElementById('stat-mcp-sub').textContent = runningNames || 'none running';
 }
 
-function renderProcesses(ports) {
+function renderProcesses(ports, bgProcs) {
   var seen = {};
   var deduped = ports.slice().sort(function(a,b) { return (b.memory_mb||0) - (a.memory_mb||0); }).filter(function(p) {
     if (seen[p.process]) return false;
@@ -361,6 +361,45 @@ function renderProcesses(ports) {
     row.appendChild(killBtn);
     container.appendChild(row);
   });
+
+  // Background processes (non-listening: game clients, apps, etc.)
+  if (bgProcs && bgProcs.length) {
+    var bgDeduped = bgProcs.filter(function(p) {
+      if (seen[p.process]) return false;
+      seen[p.process] = true;
+      return true;
+    });
+    if (bgDeduped.length) {
+      var divider = document.createElement('div');
+      divider.style.cssText = 'color:#333;font-size:8px;letter-spacing:2px;padding:8px 0 4px;border-top:1px solid #111;margin-top:4px;';
+      divider.textContent = 'BACKGROUND';
+      container.appendChild(divider);
+      var bgMax = bgDeduped.length ? (bgDeduped[0].memory_mb || 1) : 1;
+      bgDeduped.forEach(function(p) {
+        var pct = Math.max(1, Math.round(((p.memory_mb||0) / bgMax) * 100));
+        var memColor = p.memory_mb > 1000 ? '#c0632a' : p.memory_mb > 300 ? '#8a7030' : '#2a6a4a';
+        var row = document.createElement('div');
+        row.className = 'proc-row';
+        row.style.opacity = '0.65';
+        row.dataset.pid = p.pid;
+        var nameEl = document.createElement('span');
+        nameEl.style.cssText = 'color:#aaa;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        nameEl.textContent = p.process;
+        row.onclick = (function(proc, r) { return function(e) { if (e.target.classList.contains('kill-btn')) return; showProcessDetail(proc, r); }; })(p, row);
+        var memCell = document.createElement('div'); memCell.className = 'mem-cell';
+        var memVal = document.createElement('span'); memVal.style.cssText = 'color:' + memColor + ';font-size:8px;'; memVal.textContent = Math.round(p.memory_mb||0) + ' MB';
+        var barBg = document.createElement('div'); barBg.className = 'mem-bar-bg';
+        var bar = document.createElement('div'); bar.className = 'mem-bar'; bar.style.cssText = 'width:' + pct + '%;background:' + memColor + ';';
+        barBg.appendChild(bar); memCell.appendChild(memVal); memCell.appendChild(barBg);
+        var portEl2 = document.createElement('span'); portEl2.style.cssText = 'color:#333;font-size:8px;'; portEl2.textContent = '—';
+        var pidEl2 = document.createElement('span'); pidEl2.style.cssText = 'color:#444;font-size:8px;'; pidEl2.textContent = p.pid || '—';
+        var killBtn2 = document.createElement('button'); killBtn2.className = 'kill-btn'; killBtn2.textContent = 'kill';
+        killBtn2.onclick = (function(pid, r, btn) { return function() { killProcess(pid, r, btn); }; })(p.pid, row, killBtn2);
+        row.appendChild(nameEl); row.appendChild(memCell); row.appendChild(portEl2); row.appendChild(pidEl2); row.appendChild(killBtn2);
+        container.appendChild(row);
+      });
+    }
+  }
 }
 
 function showProcessDetail(p, row) {

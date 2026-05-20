@@ -19,6 +19,7 @@ from termmon.scanner import claude_ai
 from termmon.scanner.health import check_health
 from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
+from termmon.scanner.processes import scan_background_processes
 from termmon.scanner.resources import get_resources
 
 logger = logging.getLogger(__name__)
@@ -42,9 +43,12 @@ async def _full_scan() -> dict:
     mcps = scan_mcp()
     mcp_count = sum(1 for m in mcps if m["running"])
     process_names = {p["process"] for p in ports if p["process"] != "unknown"}
+    port_pids = {p["pid"] for p in ports if p["pid"]}
+    background = scan_background_processes(exclude_pids=port_pids)
     return {
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "ports": ports,
+        "background_processes": background,
         "mcp_servers": mcps,
         "summary": {
             "port_count": len(ports),
