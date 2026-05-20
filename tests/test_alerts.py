@@ -67,3 +67,26 @@ def test_service_healthy_port_no_alert():
                   "pid": 1, "label": "my-agent", "memory_mb": 50.0}
     alerts = evaluate_alerts(_scan(ports=[port_entry]), _res(), s)
     assert not any("service_offline" in a["id"] for a in alerts)
+
+
+def test_both_cpu_and_ram_breached_returns_two_alerts():
+    alerts = evaluate_alerts(
+        _scan(), _res(cpu=85.0, ram=87.0),
+        _settings(cpu_threshold=80, ram_threshold=80)
+    )
+    assert any("cpu" in a["id"] for a in alerts)
+    assert any("ram" in a["id"] for a in alerts)
+    assert len(alerts) == 2
+
+
+def test_memory_none_does_not_trigger_ram_alert():
+    r = {"cpu_percent": 10.0, "memory": None, "disk": {"percent": 5.0}}
+    alerts = evaluate_alerts(_scan(), r, _settings(ram_threshold=80))
+    assert not any("ram" in a["id"] for a in alerts)
+
+
+def test_gpu_temp_string_does_not_crash():
+    r = _res()
+    r["gpu_temp_c"] = "hot"
+    alerts = evaluate_alerts(_scan(), r, _settings(gpu_temp_threshold=80))
+    assert not any("gpu_temp" in a["id"] for a in alerts)
