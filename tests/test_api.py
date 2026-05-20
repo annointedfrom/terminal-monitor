@@ -178,15 +178,29 @@ def test_process_detail_not_found():
     assert "not found" in r.json()["detail"].lower()
 
 
-def test_chat_ollama_unavailable():
-    mock_result = {"reply": "Ollama is not running. Install Ollama and pull a model:\n\n  ollama pull llama3.2:3b", "available": False}
+def test_chat_ollama_unavailable_claude_fallback():
+    ollama_unavail = {"reply": None, "available": False}
+    claude_result = {"reply": "You have 1 active port.", "available": True}
     with patch("termmon.main._full_scan", new=AsyncMock(return_value=_mock_scan())), \
-         patch("termmon.main.ollama.generate", new=AsyncMock(return_value=mock_result)):
+         patch("termmon.main.ollama.generate", new=AsyncMock(return_value=ollama_unavail)), \
+         patch("termmon.main.claude_ai.generate", new=AsyncMock(return_value=claude_result)):
+        r = client.post("/api/chat", json={"message": "hello"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["available"] is True
+    assert data["provider"] == "claude"
+    assert data["reply"] == "You have 1 active port."
+
+
+def test_chat_both_unavailable():
+    unavail = {"reply": None, "available": False}
+    with patch("termmon.main._full_scan", new=AsyncMock(return_value=_mock_scan())), \
+         patch("termmon.main.ollama.generate", new=AsyncMock(return_value=unavail)), \
+         patch("termmon.main.claude_ai.generate", new=AsyncMock(return_value=unavail)):
         r = client.post("/api/chat", json={"message": "hello"})
     assert r.status_code == 503
     data = r.json()
     assert data["available"] is False
-    assert "ollama" in data["reply"].lower()
 
 
 def test_chat_ollama_available():

@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from termmon import brain
 from termmon.scanner import ollama
+from termmon.scanner import claude_ai
 from termmon.scanner.health import check_health
 from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
@@ -170,16 +171,25 @@ async def chat_with_ai(req: ChatRequest):
         f"Top processes: {json.dumps(ports_summary)}"
     )
     result = await ollama.generate(req.message, system, req.model)
-    if not result["available"]:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "reply": "Ollama is not running. Install Ollama and pull a model:\n\n  ollama pull llama3.2:3b",
-                "provider": "none",
-                "available": False,
-            },
-        )
-    return {"reply": result["reply"], "provider": "ollama", "available": True, "model": req.model}
+    if result["available"]:
+        return {"reply": result["reply"], "provider": "ollama", "available": True, "model": req.model}
+
+    claude_result = await claude_ai.generate(req.message, system)
+    if claude_result["available"]:
+        return {"reply": claude_result["reply"], "provider": "claude", "available": True, "model": "claude-haiku-4-5-20251001"}
+
+    return JSONResponse(
+        status_code=503,
+        content={
+            "reply": (
+                "No AI backend available.\n\n"
+                "Option 1 — Local (free): install Ollama then run:\n  ollama pull llama3.2:3b\n\n"
+                "Option 2 — Claude: set ANTHROPIC_API_KEY in your environment."
+            ),
+            "provider": "none",
+            "available": False,
+        },
+    )
 
 
 @app.get("/api/ollama/models")
