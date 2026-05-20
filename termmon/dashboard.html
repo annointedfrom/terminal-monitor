@@ -168,30 +168,14 @@ var _lastScan = null;
 
 var MCP_PORT_MAP = { 'neurolinked-brain': 8000, 'obsidian': 27123 };
 
-var PROC_DESC = {
-  'lsass.exe': 'Local Security Authority — Windows authentication, login tokens, and security policy enforcement. Core OS process; killing it crashes Windows.',
-  'svchost.exe': 'Service Host — generic Windows container that runs multiple background services. Many instances running simultaneously is normal.',
-  'python.exe': 'Python interpreter — running a Python script or web server (FastAPI, Flask, etc).',
-  'uvicorn': 'Uvicorn ASGI server — serves FastAPI and Starlette web applications.',
-  'node.exe': 'Node.js — JavaScript server-side runtime. Used by many CLI tools, MCP servers, and web backends.',
-  'Obsidian.exe': 'Obsidian — Markdown note-taking app. Runs a local server on port 27123 for plugin and MCP access.',
-  'chrome.exe': 'Google Chrome browser.',
-  'msedge.exe': 'Microsoft Edge browser.',
-  'Code.exe': 'Visual Studio Code — code editor.',
-  'WindowsTerminal.exe': 'Windows Terminal — modern terminal emulator for PowerShell, CMD, WSL.',
-  'java.exe': 'Java Virtual Machine — running a Java application.',
-  'SearchIndexer.exe': 'Windows Search Indexer — indexes file contents for fast search. High I/O during indexing bursts is normal.',
-  'MsMpEng.exe': 'Windows Defender — real-time antivirus and malware scanning engine.',
-  'explorer.exe': 'Windows Explorer — desktop shell, file manager, and taskbar.',
-  'RuntimeBroker.exe': 'Runtime Broker — manages permissions for Microsoft Store / UWP apps.',
-  'spoolsv.exe': 'Print Spooler — manages the print job queue.',
-  'WmiPrvSE.exe': 'WMI Provider Host — handles Windows Management Instrumentation queries from scripts and tools.',
-  'nginx.exe': 'Nginx — web server and reverse proxy.',
-  'postgres.exe': 'PostgreSQL — relational database server.',
-  'redis-server.exe': 'Redis — in-memory key-value store and cache.',
-  'wininit.exe': 'Windows Initialization Process — starts core subsystems at boot. Fundamental OS process.',
-  'services.exe': 'Windows Service Control Manager — starts, stops, and monitors background services.',
-};
+var PROC_DESC = {};
+var _procDescFetching = {};
+
+fetch('/api/process/descriptions').then(function(r) {
+  if (r.ok) return r.json();
+}).then(function(data) {
+  if (data) PROC_DESC = data;
+}).catch(function() {});
 
 var _scanHistory = [];
 var _resHistory  = [];
@@ -346,7 +330,23 @@ function showProcessDetail(p, row) {
   detail.className = 'proc-detail';
   var descEl = document.createElement('div');
   descEl.className = 'proc-detail-desc';
-  descEl.textContent = PROC_DESC[p.process] || 'No description available for this process.';
+  var localDesc = PROC_DESC[p.process];
+  if (localDesc) {
+    descEl.textContent = localDesc;
+  } else {
+    descEl.textContent = 'Looking up ' + p.process + '…';
+    if (!_procDescFetching[p.process]) {
+      _procDescFetching[p.process] = true;
+      fetch('/api/process/describe/' + encodeURIComponent(p.process)).then(function(r) { return r.json(); }).then(function(data) {
+        if (data && data.description) {
+          PROC_DESC[p.process] = data.description;
+          descEl.textContent = data.description + (data.source === 'ai' ? ' [ai]' : '');
+        } else {
+          descEl.textContent = 'No description found for ' + p.process + '.';
+        }
+      }).catch(function() { descEl.textContent = 'Could not look up ' + p.process + '.'; });
+    }
+  }
   detail.appendChild(descEl);
   var grid = document.createElement('div');
   grid.className = 'proc-detail-grid';

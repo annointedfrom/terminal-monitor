@@ -23,6 +23,18 @@ from termmon.scanner.resources import get_resources
 
 logger = logging.getLogger(__name__)
 
+_PROC_DESC_PATH = pathlib.Path(__file__).parent / "proc_desc.json"
+
+def _load_proc_desc() -> dict[str, str]:
+    raw = json.loads(_PROC_DESC_PATH.read_text(encoding="utf-8"))
+    flat: dict[str, str] = {}
+    for entries in raw.values():
+        flat.update(entries)
+    return flat
+
+_PROC_DESC: dict[str, str] = _load_proc_desc()
+_desc_cache: dict[str, str] = {}
+
 
 async def _full_scan() -> dict:
     ports = scan_ports()
@@ -120,6 +132,35 @@ async def kill_process(pid: int):
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
 
+@app.get("/api/process/descriptions")
+async def process_descriptions():
+    return _PROC_DESC
+
+
+@app.get("/api/process/describe/{name}")
+async def process_describe(name: str):
+    if name in _PROC_DESC:
+        return {"name": name, "description": _PROC_DESC[name], "source": "local"}
+    if name in _desc_cache:
+        return {"name": name, "description": _desc_cache[name], "source": "cache"}
+
+    system = (
+        "You are a Windows system expert. Describe the given process in 1-2 sentences: "
+        "what software it belongs to, what it does, and whether it is safe. Be concise and factual."
+    )
+    prompt = f"What is the Windows process named '{name}'?"
+
+    result = await ollama.generate(prompt, system)
+    if not result["available"]:
+        result = await claude_ai.generate(prompt, system)
+
+    if result["available"] and result["reply"]:
+        _desc_cache[name] = result["reply"]
+        return {"name": name, "description": result["reply"], "source": "ai"}
+
+    return {"name": name, "description": None, "source": "unknown"}
+
+
 @app.get("/api/process/{pid}")
 async def process_detail(pid: int):
     try:
@@ -196,6 +237,35 @@ async def chat_with_ai(req: ChatRequest):
 async def ollama_models():
     models = await ollama.list_models()
     return {"models": models, "available": len(models) > 0}
+
+
+@app.get("/api/process/descriptions")
+async def process_descriptions():
+    return _PROC_DESC
+
+
+@app.get("/api/process/describe/{name}")
+async def process_describe(name: str):
+    if name in _PROC_DESC:
+        return {"name": name, "description": _PROC_DESC[name], "source": "local"}
+    if name in _desc_cache:
+        return {"name": name, "description": _desc_cache[name], "source": "cache"}
+
+    system = (
+        "You are a Windows system expert. Describe the given process in 1-2 sentences: "
+        "what software it belongs to, what it does, and whether it is safe. Be concise and factual."
+    )
+    prompt = f"What is the Windows process named '{name}'?"
+
+    result = await ollama.generate(prompt, system)
+    if not result["available"]:
+        result = await claude_ai.generate(prompt, system)
+
+    if result["available"] and result["reply"]:
+        _desc_cache[name] = result["reply"]
+        return {"name": name, "description": result["reply"], "source": "ai"}
+
+    return {"name": name, "description": None, "source": "unknown"}
 
 
 @app.post("/api/restart/{agent_id}")

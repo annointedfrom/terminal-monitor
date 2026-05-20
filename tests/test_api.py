@@ -232,3 +232,44 @@ def test_ollama_models_unavailable():
     data = r.json()
     assert data["available"] is False
     assert data["models"] == []
+
+
+def test_process_descriptions_returns_dict():
+    r = client.get("/api/process/descriptions")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, dict)
+    assert "lsass.exe" in data
+    assert "Dolphin.exe" in data
+    assert "steam.exe" not in data  # case-sensitive
+
+
+def test_process_describe_local_hit():
+    r = client.get("/api/process/describe/lsass.exe")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source"] == "local"
+    assert "security" in data["description"].lower()
+
+
+def test_process_describe_ai_fallback():
+    unavail = {"reply": None, "available": False}
+    ai_result = {"reply": "SomeObscureApp is a background helper process.", "available": True}
+    with patch("termmon.main.ollama.generate", new=AsyncMock(return_value=unavail)), \
+         patch("termmon.main.claude_ai.generate", new=AsyncMock(return_value=ai_result)):
+        r = client.get("/api/process/describe/SomeObscureApp_notindict.exe")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source"] == "ai"
+    assert "obscure" in data["description"].lower()
+
+
+def test_process_describe_unknown_no_ai():
+    unavail = {"reply": None, "available": False}
+    with patch("termmon.main.ollama.generate", new=AsyncMock(return_value=unavail)), \
+         patch("termmon.main.claude_ai.generate", new=AsyncMock(return_value=unavail)):
+        r = client.get("/api/process/describe/totally_unknown_xyz.exe")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source"] == "unknown"
+    assert data["description"] is None
