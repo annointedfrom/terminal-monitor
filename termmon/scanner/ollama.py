@@ -1,22 +1,21 @@
 from __future__ import annotations
 
+import os
+
 import httpx
 
-OLLAMA_URL = "http://localhost:11434"
 DEFAULT_MODEL = "llama3.2:3b"
 
 
-async def generate(message: str, system: str, model: str = DEFAULT_MODEL) -> dict:
-    """Call Ollama /api/generate (non-streaming).
+def _ollama_url() -> str:
+    return os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
-    Returns {"reply": str, "available": True} on success or
-    {"reply": None, "available": False} if Ollama is unreachable or the
-    model is missing.
-    """
+
+async def generate(message: str, system: str, model: str = DEFAULT_MODEL) -> dict:
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                f"{OLLAMA_URL}/api/generate",
+                f"{_ollama_url()}/api/generate",
                 json={"model": model, "system": system, "prompt": message, "stream": False},
                 timeout=30.0,
             )
@@ -27,10 +26,9 @@ async def generate(message: str, system: str, model: str = DEFAULT_MODEL) -> dic
 
 
 async def list_models() -> list[str]:
-    """Return names of models available locally in Ollama."""
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.get(f"{OLLAMA_URL}/api/tags", timeout=5.0)
+            r = await client.get(f"{_ollama_url()}/api/tags", timeout=5.0)
             r.raise_for_status()
             return [m["name"] for m in r.json().get("models", [])]
     except Exception:

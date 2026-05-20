@@ -362,3 +362,9 @@ def test_setup_post_saves_config(tmp_path):
         })
     assert r.status_code == 200
     assert r.json()["saved"] is True
+
+
+def test_health_endpoint():
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
