@@ -10,11 +10,12 @@ from datetime import datetime, timezone
 import pathlib
 
 import psutil
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from termmon import brain
+from termmon.config import get_settings, write_settings
 from termmon.scanner import ollama
 from termmon.scanner import claude_ai
 from termmon.scanner.health import check_health
@@ -71,9 +72,13 @@ async def _brain_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(_brain_loop())
+    settings = get_settings()
+    tasks = []
+    if settings.brain.enabled:
+        tasks.append(asyncio.create_task(_brain_loop()))
     yield
-    task.cancel()
+    for t in tasks:
+        t.cancel()
 
 
 app = FastAPI(title="Terminal Monitor", lifespan=lifespan)
@@ -113,6 +118,19 @@ async def stats_process_count():
 @app.get("/api/resources")
 async def get_resources_endpoint():
     return get_resources()
+
+
+@app.get("/api/config")
+async def get_config():
+    settings = get_settings()
+    return {
+        "title": settings.dashboard.title,
+        "default_model": settings.dashboard.default_model,
+        "training_threshold": settings.dashboard.training_threshold,
+        "services": [s.model_dump() for s in settings.services],
+        "alerts": settings.alerts.model_dump(),
+        "brain_enabled": settings.brain.enabled,
+    }
 
 
 @app.post("/api/brain/sync")
@@ -277,43 +295,61 @@ async def save_training_pair(req: TrainingPair):
     return {"saved": True, "instruction": question}
 
 
-@app.get("/api/process/descriptions")
-async def process_descriptions():
-    return _PROC_DESC
-
-
-@app.get("/api/process/describe/{name}")
-async def process_describe(name: str):
-    if name in _PROC_DESC:
-        return {"name": name, "description": _PROC_DESC[name], "source": "local"}
-    if name in _desc_cache:
-        return {"name": name, "description": _desc_cache[name], "source": "cache"}
-
-    system = (
-        "You are a Windows system expert. Describe the given process in 1-2 sentences: "
-        "what software it belongs to, what it does, and whether it is safe. Be concise and factual."
-    )
-    prompt = f"What is the Windows process named '{name}'?"
-
-    result = await ollama.generate(prompt, system)
-    if not result["available"]:
-        result = await claude_ai.generate(prompt, system)
-
-    if result["available"] and result["reply"]:
-        _desc_cache[name] = result["reply"]
-        return {"name": name, "description": result["reply"], "source": "ai"}
-
-    return {"name": name, "description": None, "source": "unknown"}
-
-
 @app.post("/api/restart/{agent_id}")
 async def restart_agent(agent_id: str):
     return JSONResponse(status_code=501, content={"detail": "restart not implemented (v2)"})
 
 
+@app.get("/api/training/status")
+async def training_status():
+    threshold = 100
+    count = 0
+    if _TRAINING_PATH.exists():
+        count = sum(
+            1
+            for line in _TRAINING_PATH.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        )
+    return {"count": count, "threshold": threshold, "ready": count >= threshold}
+
+
+@app.websocket("/ws/terminal")
+async def terminal_ws(websocket: WebSocket):
+    """Local-only PowerShell command runner — one process per command."""
+    await websocket.accept()
+    try:
+        while True:
+            cmd = await websocket.receive_text()
+            cmd = cmd.strip()
+            if not cmd:
+                continue
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "powershell.exe",
+                    "-NoProfile", "-NonInteractive", "-Command", cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    cwd=str(pathlib.Path.home()),
+                )
+                while True:
+                    chunk = await proc.stdout.read(1024)
+                    if not chunk:
+                        break
+                    await websocket.send_text(chunk.decode("utf-8", errors="replace"))
+                await proc.wait()
+                await websocket.send_text(f"\r\n[exit {proc.returncode}]\r\n")
+            except Exception as exc:
+                await websocket.send_text(f"[error] {exc}\r\n")
+    except Exception:
+        pass
+
+
+_CONFIG_PATH = pathlib.Path(__file__).parent.parent / "config.yaml"
 _DASHBOARD = pathlib.Path(__file__).parent / "dashboard.html"
 
 
 @app.get("/dashboard")
 async def dashboard():
+    if not _CONFIG_PATH.exists():
+        return RedirectResponse("/setup", status_code=303)
     return FileResponse(_DASHBOARD, media_type="text/html")

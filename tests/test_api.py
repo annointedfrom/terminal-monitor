@@ -147,7 +147,9 @@ def test_get_resources_live_schema():
 
 
 def test_dashboard_returns_html():
-    r = client.get("/dashboard")
+    import pathlib
+    with patch("termmon.main._CONFIG_PATH", pathlib.Path(__file__).parent / "test_config_stub.yaml"):
+        r = client.get("/dashboard")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
 
@@ -280,3 +282,17 @@ def test_process_describe_unknown_no_ai():
     data = r.json()
     assert data["source"] == "unknown"
     assert data["description"] is None
+
+
+def test_api_config_safe_fields():
+    r = client.get("/api/config")
+    assert r.status_code == 200
+    data = r.json()
+    assert "title" in data
+    assert "default_model" in data
+    assert "services" in data
+    assert "alerts" in data
+    assert "brain_enabled" in data
+    # brain URL must NOT be exposed to frontend
+    assert "url" not in data
+    assert "brain_url" not in data

@@ -1,0 +1,13 @@
+dashboard:
+  title: Test Dashboard
+  default_model: ops-brain
+  training_threshold: 100
+brain:
+  enabled: false
+  url: http://localhost:8000
+services: []
+alerts:
+  cpu_threshold: 80
+  ram_threshold: 80
+  gpu_temp_threshold: 80
+  offline_notify: true
