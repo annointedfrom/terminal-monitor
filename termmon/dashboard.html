@@ -274,6 +274,33 @@ fetch('/api/process/descriptions').then(function(r) {
 
 var _scanHistory = [];
 var _resHistory  = [];
+async function _seedHistory() {
+  try {
+    var r = await fetch('/api/history');
+    if (!r.ok) return;
+    var data = await r.json();
+    _scanHistory = (data.scan || []).map(function(s) {
+      return {
+        ts: new Date(s.scanned_at).getTime(),
+        portCount: (s.ports || []).length,
+        procCount: (s.summary || {}).process_count || 0,
+        mcpOnline: (s.summary || {}).mcp_count || 0,
+        mcpTotal: (s.mcp_servers || []).length,
+        procs: Array.from(new Set((s.ports || []).map(function(p) { return p.process; }))),
+      };
+    });
+    _resHistory = (data.resources || []).map(function(res) {
+      return {
+        ts: Date.now(),
+        cpu: res.cpu_percent || 0,
+        ramPct: (res.memory || {}).percent || 0,
+        ramRaw: res.memory || null,
+        diskPct: (res.disk || {}).percent || 0,
+        gpuUtil: res.gpus && res.gpus.length ? (res.gpus[0].util_pct || undefined) : undefined,
+      };
+    });
+  } catch(_) {}
+}
 var _chatHistory = [];
 var _chatLoading = false;
 var _lastResData  = null;
@@ -1112,6 +1139,7 @@ async function doScan() {
 }
 
 _loadConfig();
+_seedHistory();
 doScan();
 setInterval(fetchScan, 5000);
 setInterval(fetchResources, 5000);
