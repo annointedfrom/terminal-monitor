@@ -54,6 +54,20 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .res-bar-bg { background: #1a1a1a; height: 6px; border-radius: 3px; }
 .res-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
 .coming-soon { display: flex; align-items: center; justify-content: center; height: 120px; color: #333; font-size: 10px; letter-spacing: 2px; }
+#tab-content.chat-active { padding: 0; overflow: hidden; }
+#pane-ai { display: flex; flex-direction: column; height: 100%; }
+#chat-msgs { flex: 1; overflow-y: auto; padding: 8px 10px 4px; }
+.chat-msg { padding: 5px 8px; border-radius: 3px; font-size: 9px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-bottom: 5px; }
+.chat-msg.you { background: #0d2040; color: #8ab4d4; margin-left: 15%; border: 1px solid #1a4a7a; }
+.chat-msg.ai { background: #0a1510; color: #7abf7a; margin-right: 15%; border: 1px solid #1a4a1a; }
+.chat-msg.sys { color: #333; font-size: 8px; text-align: center; }
+.chat-msg.err { background: #1a0808; color: #e74c3c; border: 1px solid #4a1a1a; }
+#chat-input-bar { display: flex; gap: 6px; padding: 6px 10px; border-top: 1px solid #1a1a1a; flex-shrink: 0; }
+#chat-input { flex: 1; background: #0d0d0d; border: 1px solid #1a3a5a; color: #ccc; font-family: monospace; font-size: 10px; padding: 4px 8px; border-radius: 2px; outline: none; }
+#chat-input:focus { border-color: #3498db; }
+#chat-send { background: #0d2040; border: 1px solid #1a4a7a; color: #3498db; font-size: 9px; padding: 3px 10px; cursor: pointer; border-radius: 2px; white-space: nowrap; }
+#chat-send:hover { background: #142a50; }
+#chat-send:disabled { opacity: 0.4; cursor: default; }
 .proc-detail { background: #080f18; border-left: 2px solid #1a4a7a; padding: 6px 10px; margin: -3px 0 6px 0; }
 .proc-detail-desc { color: #6a9cbf; font-size: 9px; line-height: 1.5; margin-bottom: 5px; }
 .proc-detail-grid { display: grid; grid-template-columns: 52px 1fr; gap: 2px 8px; }
@@ -111,6 +125,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   <div class="tab" onclick="switchTab('resources')">RESOURCES</div>
   <div class="tab" onclick="switchTab('history')">HISTORY</div>
   <div class="tab" onclick="switchTab('energy')">ENERGY</div>
+  <div class="tab" onclick="switchTab('ai')">AI</div>
 </div>
 
 <div id="tab-content">
@@ -137,6 +152,13 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   </div>
   <div id="pane-energy" class="tab-pane">
     <div id="energy-content"></div>
+  </div>
+  <div id="pane-ai" class="tab-pane">
+    <div id="chat-msgs"></div>
+    <div id="chat-input-bar">
+      <input id="chat-input" type="text" placeholder="Ask about your system&#8230;" autocomplete="off" />
+      <button id="chat-send" onclick="sendChat()">ASK &#8629;</button>
+    </div>
   </div>
 </div>
 
@@ -173,6 +195,8 @@ var PROC_DESC = {
 
 var _scanHistory = [];
 var _resHistory  = [];
+var _chatHistory = [];
+var _chatLoading = false;
 
 // ── Drag-to-resize stat header ────────────────────────────────
 var _statHeader = document.getElementById('stat-header');
@@ -199,13 +223,15 @@ document.addEventListener('mouseup', function() {
 
 function switchTab(name) {
   var tabs = document.querySelectorAll('.tab');
-  var names = ['processes','mcp','resources','history','energy'];
+  var names = ['processes','mcp','resources','history','energy','ai'];
   tabs.forEach(function(t, i) { t.classList.toggle('active', names[i] === name); });
   document.querySelectorAll('.tab-pane').forEach(function(p) {
     p.classList.toggle('active', p.id === 'pane-' + name);
   });
+  document.getElementById('tab-content').classList.toggle('chat-active', name === 'ai');
   if (name === 'history') renderHistory();
   if (name === 'energy') renderEnergy();
+  if (name === 'ai') renderChat();
 }
 
 function setError(msg) {
@@ -559,6 +585,61 @@ function renderEnergy() {
   addTrend('RAM', _resHistory.map(function(r) { return r.ramPct; }), ramLabel);
   addTrend('DISK', _resHistory.map(function(r) { return r.diskPct; }), latest.diskPct.toFixed(1) + '%');
 }
+
+function renderChat() {
+  var msgs = document.getElementById('chat-msgs');
+  if (!msgs) return;
+  msgs.innerHTML = '';
+  if (_chatHistory.length === 0) {
+    var sys = document.createElement('div');
+    sys.className = 'chat-msg sys';
+    sys.textContent = 'Ask anything about your system — processes, ports, memory, MCP servers.';
+    msgs.appendChild(sys);
+    return;
+  }
+  _chatHistory.forEach(function(entry) {
+    var div = document.createElement('div');
+    div.className = 'chat-msg ' + entry.role;
+    div.textContent = entry.text;
+    msgs.appendChild(div);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendChat() {
+  if (_chatLoading) return;
+  var input = document.getElementById('chat-input');
+  var msg = input.value.trim();
+  if (!msg) return;
+  _chatLoading = true;
+  var btn = document.getElementById('chat-send');
+  btn.disabled = true;
+  input.value = '';
+  _chatHistory.push({ role: 'you', text: msg });
+  renderChat();
+  try {
+    var r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, model: 'llama3.2:3b' }),
+    });
+    var data = await r.json();
+    if (r.status === 503 || !data.available) {
+      _chatHistory.push({ role: 'err', text: data.reply || 'Ollama is not running. Run: ollama pull llama3.2:3b' });
+    } else {
+      _chatHistory.push({ role: 'ai', text: data.reply });
+    }
+  } catch(e) {
+    _chatHistory.push({ role: 'err', text: 'Request failed — ' + e.message });
+  }
+  _chatLoading = false;
+  btn.disabled = false;
+  renderChat();
+}
+
+document.getElementById('chat-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendChat();
+});
 
 function tickUpdated() {
   _secondsSinceUpdate++;

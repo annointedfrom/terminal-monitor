@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -10,8 +11,10 @@ import pathlib
 import psutil
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 from termmon import brain
+from termmon.scanner import ollama
 from termmon.scanner.health import check_health
 from termmon.scanner.mcp import scan_mcp
 from termmon.scanner.ports import scan_ports
@@ -143,6 +146,46 @@ async def process_detail(pid: int):
         return JSONResponse(status_code=404, content={"detail": "Process not found"})
     except psutil.AccessDenied:
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
+
+
+class ChatRequest(BaseModel):
+    message: str
+    model: str = "llama3.2:3b"
+
+
+@app.post("/api/chat")
+async def chat_with_ai(req: ChatRequest):
+    scan = await _full_scan()
+    ports_summary = [
+        {"process": p["process"], "port": p["port"], "memory_mb": round(p.get("memory_mb", 0))}
+        for p in scan["ports"][:20]
+    ]
+    system = (
+        "You are an ops assistant monitoring the user's local machine. "
+        "Answer questions about running processes, system health, and what actions to take. "
+        "Be concise — 1-3 sentences unless more detail is explicitly requested. "
+        f"Current system snapshot: active ports={scan['summary']['port_count']}, "
+        f"unique processes={scan['summary']['process_count']}, "
+        f"MCP servers running={scan['summary']['mcp_count']}. "
+        f"Top processes: {json.dumps(ports_summary)}"
+    )
+    result = await ollama.generate(req.message, system, req.model)
+    if not result["available"]:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "reply": "Ollama is not running. Install Ollama and pull a model:\n\n  ollama pull llama3.2:3b",
+                "provider": "none",
+                "available": False,
+            },
+        )
+    return {"reply": result["reply"], "provider": "ollama", "available": True, "model": req.model}
+
+
+@app.get("/api/ollama/models")
+async def ollama_models():
+    models = await ollama.list_models()
+    return {"models": models, "available": len(models) > 0}
 
 
 @app.post("/api/restart/{agent_id}")

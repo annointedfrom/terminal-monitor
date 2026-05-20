@@ -176,3 +176,45 @@ def test_process_detail_not_found():
         r = client.get("/api/process/99999")
     assert r.status_code == 404
     assert "not found" in r.json()["detail"].lower()
+
+
+def test_chat_ollama_unavailable():
+    mock_result = {"reply": "Ollama is not running. Install Ollama and pull a model:\n\n  ollama pull llama3.2:3b", "available": False}
+    with patch("termmon.main._full_scan", new=AsyncMock(return_value=_mock_scan())), \
+         patch("termmon.main.ollama.generate", new=AsyncMock(return_value=mock_result)):
+        r = client.post("/api/chat", json={"message": "hello"})
+    assert r.status_code == 503
+    data = r.json()
+    assert data["available"] is False
+    assert "ollama" in data["reply"].lower()
+
+
+def test_chat_ollama_available():
+    mock_result = {"reply": "You have 1 port active.", "available": True}
+    with patch("termmon.main._full_scan", new=AsyncMock(return_value=_mock_scan())), \
+         patch("termmon.main.ollama.generate", new=AsyncMock(return_value=mock_result)):
+        r = client.post("/api/chat", json={"message": "how many ports?", "model": "llama3.2:3b"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["available"] is True
+    assert data["provider"] == "ollama"
+    assert data["reply"] == "You have 1 port active."
+    assert data["model"] == "llama3.2:3b"
+
+
+def test_ollama_models_available():
+    with patch("termmon.main.ollama.list_models", new=AsyncMock(return_value=["llama3.2:3b", "phi3:mini"])):
+        r = client.get("/api/ollama/models")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["available"] is True
+    assert "llama3.2:3b" in data["models"]
+
+
+def test_ollama_models_unavailable():
+    with patch("termmon.main.ollama.list_models", new=AsyncMock(return_value=[])):
+        r = client.get("/api/ollama/models")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["available"] is False
+    assert data["models"] == []
