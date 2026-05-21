@@ -99,6 +99,9 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
             spec = importlib.util.spec_from_file_location(
                 f"termmon_plugin_{plugin_name}", init_path
             )
+            if spec is None or spec.loader is None:
+                logger.warning("Plugin %s: could not create module spec — skipped", plugin_name)
+                continue
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         except Exception as exc:
