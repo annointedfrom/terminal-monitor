@@ -6,11 +6,11 @@ from enum import IntEnum
 import jwt
 
 try:
-    from fastapi import Depends, HTTPException, Request as _FastAPIRequest
+    from fastapi import Depends, HTTPException, Request
 except ImportError:  # FastAPI not installed in all environments
     Depends = None  # type: ignore[assignment]
     HTTPException = None  # type: ignore[assignment]
-    _FastAPIRequest = None  # type: ignore[assignment]
+    Request = None  # type: ignore[assignment]
 
 PUBLIC_KEY = ""  # Replaced during Task 7 with output of: python termmon-keygen.py --generate-keypair
 
@@ -57,7 +57,10 @@ def verify_license(key_string: str) -> LicenseInfo | None:
 
 
 def require_tier(minimum: Tier):
-    async def _check(request: _FastAPIRequest) -> LicenseInfo:  # type: ignore[valid-type]
+    if Depends is None or HTTPException is None:
+        raise RuntimeError("require_tier() requires FastAPI; install fastapi to use it")
+
+    async def _check(request: Request) -> LicenseInfo:  # type: ignore[valid-type] — Request is None only without FastAPI; this path is never reached in that context
         info: LicenseInfo | None = getattr(request.app.state, "license", None)
         if info is None or info.tier < minimum:
             raise HTTPException(
