@@ -92,3 +92,58 @@ def test_tier_ordering():
     assert Tier.BASE < Tier.MID
     assert Tier.MID < Tier.DIAMOND
     assert Tier.BASE < Tier.DIAMOND
+
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from termmon.licensing import require_tier
+
+
+def _make_test_app(license_info):
+    test_app = FastAPI()
+    test_app.state.license = license_info
+
+    @test_app.get("/protected", dependencies=[require_tier(Tier.MID)])
+    async def protected():
+        return {"ok": True}
+
+    @test_app.get("/diamond-only", dependencies=[require_tier(Tier.DIAMOND)])
+    async def diamond_only():
+        return {"ok": True}
+
+    return test_app
+
+
+def test_require_tier_blocks_when_no_license():
+    app = _make_test_app(None)
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/protected")
+    assert r.status_code == 403
+
+
+def test_require_tier_blocks_base_for_mid_route():
+    app = _make_test_app(LicenseInfo(tier=Tier.BASE, email="t@t.com", issued_at="2026-05-20"))
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/protected")
+    assert r.status_code == 403
+
+
+def test_require_tier_allows_mid_for_mid_route():
+    app = _make_test_app(LicenseInfo(tier=Tier.MID, email="t@t.com", issued_at="2026-05-20"))
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/protected")
+    assert r.status_code == 200
+
+
+def test_require_tier_blocks_mid_for_diamond_route():
+    app = _make_test_app(LicenseInfo(tier=Tier.MID, email="t@t.com", issued_at="2026-05-20"))
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/diamond-only")
+    assert r.status_code == 403
+
+
+def test_require_tier_allows_diamond_for_diamond_route():
+    app = _make_test_app(LicenseInfo(tier=Tier.DIAMOND, email="t@t.com", issued_at="2026-05-20"))
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/diamond-only")
+    assert r.status_code == 200
