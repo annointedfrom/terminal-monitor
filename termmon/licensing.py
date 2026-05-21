@@ -12,7 +12,16 @@ except ImportError:  # FastAPI not installed in all environments
     HTTPException = None  # type: ignore[assignment]
     Request = None  # type: ignore[assignment]
 
-PUBLIC_KEY = ""  # Replaced during Task 7 with output of: python termmon-keygen.py --generate-keypair
+PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzxyJfSH4uAzS3cD9BflH
+J5frjtkIAUtlXCdqiySVPEXQFwq6nlMLVE4I5eLdXF6249p9EpkMmq6ME2bS5mKD
+V6+JHAAtBBZLmH7Q2w35s/Jwb/vVqroumQ7hLnzy7fNh84iyyXl7Asf6GpfO/AFo
+ALt2VsefunbIfVALlpBdShiWg0t3YEnefQ/CJkxj6l02XZlmj70Vo4ehWuWO+cer
+AHh08pg0dowbS97/fJ70g5sLRae20ezUesiVH6FF/X8pLv73RXUt0MmOdPGvaEer
+VMs/l4SyGbIuuQHiPKkuuL8rZ7SXk5VkARrn0b2u+i5GSuhuKLjvy3HYCFpo+V+N
+VwIDAQAB
+-----END PUBLIC KEY-----
+"""
 
 
 class Tier(IntEnum):

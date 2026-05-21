@@ -22,6 +22,7 @@ models/Modelfile.generated
 .git/
 tests/
 docs/
+termmon-keygen.py
 
 # OS / IDE
 .DS_Store

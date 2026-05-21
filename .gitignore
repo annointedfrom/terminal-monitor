@@ -19,3 +19,6 @@ data/
 # Model artifacts
 models/Modelfile
 models/training_seed.jsonl
+
+# RSA keypair (private key must never be committed)
+*.pem
