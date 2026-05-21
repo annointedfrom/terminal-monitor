@@ -65,6 +65,21 @@ def verify_license(key_string: str) -> LicenseInfo | None:
         return None
 
 
+def verify_plugin_key(token: str, plugin_name: str) -> bool:
+    if not token or not PUBLIC_KEY:
+        return False
+    try:
+        payload = jwt.decode(
+            token,
+            PUBLIC_KEY,
+            algorithms=["RS256"],
+            options={"verify_exp": False},
+        )
+        return payload.get("sub") == f"termmon-plugin-{plugin_name}"
+    except Exception:
+        return False
+
+
 def require_tier(minimum: Tier):
     if Depends is None or HTTPException is None:
         raise RuntimeError("require_tier() requires FastAPI; install fastapi to use it")

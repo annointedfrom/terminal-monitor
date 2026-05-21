@@ -316,3 +316,45 @@ def test_model_pull_reaches_handler_for_mid_license(mid_license_client):
     # Ollama not running in CI — expects 503 (no Ollama), NOT 403 (license block)
     r = mid_license_client.post("/api/update/model/pull", json={"tag": "ops-brain:v2"})
     assert r.status_code != 403
+
+
+def test_verify_plugin_key_valid(rsa_keypair):
+    private_pem, public_pem = rsa_keypair
+    token = pyjwt.encode(
+        {"sub": "termmon-plugin-docker", "email": "buyer@test.com", "issued_at": "2026-05-21"},
+        private_pem,
+        algorithm="RS256",
+    )
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        assert lic_mod.verify_plugin_key(token, "docker") is True
+
+
+def test_verify_plugin_key_wrong_plugin_name(rsa_keypair):
+    private_pem, public_pem = rsa_keypair
+    token = pyjwt.encode(
+        {"sub": "termmon-plugin-docker", "email": "buyer@test.com", "issued_at": "2026-05-21"},
+        private_pem,
+        algorithm="RS256",
+    )
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        assert lic_mod.verify_plugin_key(token, "redis") is False
+
+
+def test_verify_plugin_key_garbage_returns_false():
+    assert lic_mod.verify_plugin_key("not.a.jwt", "docker") is False
+
+
+def test_verify_plugin_key_empty_returns_false():
+    assert lic_mod.verify_plugin_key("", "docker") is False
+
+
+def test_verify_plugin_key_main_license_token_rejected(rsa_keypair):
+    """A main app license key must NOT pass as a plugin key."""
+    private_pem, public_pem = rsa_keypair
+    token = pyjwt.encode(
+        {"sub": "terminal-monitor", "tier": "mid", "email": "b@t.com", "issued_at": "2026-05-21"},
+        private_pem,
+        algorithm="RS256",
+    )
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        assert lic_mod.verify_plugin_key(token, "docker") is False
