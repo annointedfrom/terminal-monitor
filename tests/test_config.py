@@ -68,3 +68,22 @@ def test_missing_sections_get_defaults(tmp_path):
     assert s.alerts.cpu_threshold == 80
     assert s.brain.enabled is False
     assert s.services == []
+
+
+def test_license_key_defaults_to_empty(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    import termmon.config as cfg_mod
+    cfg_mod._settings = None
+    with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
+        s = cfg_mod._load()
+    assert s.license_key == ""
+
+
+def test_license_key_loads_from_yaml(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("license_key: 'eyJtest'\n", encoding="utf-8")
+    import termmon.config as cfg_mod
+    cfg_mod._settings = None
+    with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
+        s = cfg_mod._load()
+    assert s.license_key == "eyJtest"

@@ -38,6 +38,7 @@ class Settings(BaseModel):
     brain: BrainConfig = Field(default_factory=BrainConfig)
     services: list[ServiceConfig] = Field(default_factory=list)
     alerts: AlertsConfig = Field(default_factory=AlertsConfig)
+    license_key: str = ""
 
 
 _settings: Optional[Settings] = None

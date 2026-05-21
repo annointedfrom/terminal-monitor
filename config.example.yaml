@@ -23,3 +23,6 @@ alerts:
   ram_threshold: 80             # % RAM before browser notification fires
   gpu_temp_threshold: 80        # degrees C GPU temp before alert fires
   offline_notify: true          # notify when a listed service goes offline
+
+# License key issued after purchase — paste your JWT here
+license_key: ""
