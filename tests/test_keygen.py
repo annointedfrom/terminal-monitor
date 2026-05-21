@@ -47,3 +47,24 @@ def test_generate_keypair_does_not_overwrite_existing(tmp_path):
     original_mtime = (tmp_path / "private_key.pem").stat().st_mtime
     kg.generate_keypair(tmp_path)  # second call should not overwrite
     assert (tmp_path / "private_key.pem").stat().st_mtime == original_mtime
+
+
+def test_issue_plugin_key_correct_sub(tmp_path):
+    kg = _load_keygen()
+    public_pem = kg.generate_keypair(tmp_path)
+    token = kg.issue_plugin_key("docker", "buyer@example.com", tmp_path / "private_key.pem")
+    payload = pyjwt.decode(token, public_pem, algorithms=["RS256"], options={"verify_exp": False})
+    assert payload["sub"] == "termmon-plugin-docker"
+    assert payload["email"] == "buyer@example.com"
+    assert "tier" not in payload
+    assert "issued_at" in payload
+
+
+def test_issue_plugin_key_different_plugins(tmp_path):
+    kg = _load_keygen()
+    public_pem = kg.generate_keypair(tmp_path)
+    for name in ("docker", "redis", "nginx"):
+        token = kg.issue_plugin_key(name, "buyer@example.com", tmp_path / "private_key.pem")
+        payload = pyjwt.decode(token, public_pem, algorithms=["RS256"], options={"verify_exp": False})
+        assert payload["sub"] == f"termmon-plugin-{name}"
+        assert "tier" not in payload

@@ -54,6 +54,20 @@ def issue_key(tier: str, email: str, private_key_path: pathlib.Path) -> str:
     )
 
 
+def issue_plugin_key(plugin_name: str, email: str, private_key_path: pathlib.Path) -> str:
+    """Sign a JWT plugin key for the given plugin name and email. No tier field."""
+    private_pem = private_key_path.read_text()
+    return jwt.encode(
+        {
+            "sub": f"termmon-plugin-{plugin_name}",
+            "email": email,
+            "issued_at": date.today().isoformat(),
+        },
+        private_pem,
+        algorithm="RS256",
+    )
+
+
 def _default_key_dir() -> pathlib.Path:
     return pathlib.Path.home() / ".termmon"
 
@@ -63,6 +77,7 @@ def main() -> None:
     parser.add_argument("--generate-keypair", action="store_true", help="Generate RSA keypair")
     parser.add_argument("--tier", choices=["base", "mid", "diamond"], help="License tier")
     parser.add_argument("--email", help="Buyer email to encode in the key")
+    parser.add_argument("--plugin", help="Plugin name to issue a plugin key for (ignores --tier)")
     parser.add_argument("--key-dir", type=pathlib.Path, default=_default_key_dir(),
                         help="Directory for keypair files (default: ~/.termmon)")
     args = parser.parse_args()
@@ -71,6 +86,16 @@ def main() -> None:
         public_pem = generate_keypair(args.key_dir)
         print("\nEmbed this PUBLIC_KEY in termmon/licensing.py:\n")
         print(public_pem)
+        return
+
+    if args.plugin and args.email:
+        private_key_path = args.key_dir / "private_key.pem"
+        if not private_key_path.exists():
+            print(f"[error] Private key not found at {private_key_path}", file=sys.stderr)
+            print("Run: python termmon-keygen.py --generate-keypair", file=sys.stderr)
+            sys.exit(1)
+        token = issue_plugin_key(args.plugin, args.email, private_key_path)
+        print(token)
         return
 
     if args.tier and args.email:
