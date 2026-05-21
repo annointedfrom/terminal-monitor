@@ -304,6 +304,32 @@ async function pullModel(tag) {
   }
 }
 
+async function _loadPlugins() {
+  try {
+    var r = await fetch('/api/plugins');
+    if (!r.ok) return;
+    var plugins = await r.json();
+    if (!plugins.length) return;
+    var tabBar = document.getElementById('tab-bar');
+    var tabContent = document.getElementById('tab-content');
+    plugins.forEach(function(p) {
+      var tabId = 'plugin-' + p.name;
+      var paneId = 'pane-plugin-' + p.name;
+      var tab = document.createElement('div');
+      tab.className = 'tab';
+      tab.setAttribute('data-plugin', esc(p.name));
+      tab.textContent = esc(p.label);
+      tab.onclick = (function(id) { return function() { switchTab(id); }; })(tabId);
+      tabBar.appendChild(tab);
+      var pane = document.createElement('div');
+      pane.id = paneId;
+      pane.className = 'tab-pane';
+      pane.setAttribute('data-plugin-loaded', 'false');
+      tabContent.appendChild(pane);
+    });
+  } catch(e) {}
+}
+
 async function _loadConfig() {
   try {
     var r = await fetch('/api/config');
@@ -419,7 +445,13 @@ document.addEventListener('mouseup', function() {
 function switchTab(name) {
   var tabs = document.querySelectorAll('.tab');
   var names = ['processes','mcp','resources','history','energy','ai'];
-  tabs.forEach(function(t, i) { t.classList.toggle('active', names[i] === name); });
+  tabs.forEach(function(t, i) {
+    if (i < names.length) {
+      t.classList.toggle('active', names[i] === name);
+    } else {
+      t.classList.toggle('active', 'plugin-' + t.getAttribute('data-plugin') === name);
+    }
+  });
   document.querySelectorAll('.tab-pane').forEach(function(p) {
     p.classList.toggle('active', p.id === 'pane-' + name);
   });
@@ -427,6 +459,16 @@ function switchTab(name) {
   if (name === 'history') renderHistory();
   if (name === 'energy') renderEnergy();
   if (name === 'ai') { renderChat(); fetchTrainingStatus(); loadModels(); }
+  if (name.startsWith('plugin-')) {
+    var pane = document.getElementById('pane-' + name);
+    if (pane && pane.getAttribute('data-plugin-loaded') === 'false') {
+      var pluginName = name.slice('plugin-'.length);
+      fetch('/api/plugins/' + encodeURIComponent(pluginName) + '/tab')
+        .then(function(r) { return r.text(); })
+        .then(function(html) { pane.innerHTML = html; pane.setAttribute('data-plugin-loaded', 'true'); })
+        .catch(function() {});
+    }
+  }
 }
 
 function setError(msg) {
@@ -1237,8 +1279,10 @@ async function doScan() {
   await Promise.all([fetchScan(), fetchResources()]);
 }
 
-_loadConfig();
-_checkUpdates();
+_loadConfig().then(function() {
+  _checkUpdates();
+  _loadPlugins();
+});
 _seedHistory();
 _requestNotifPermission();
 _startAlertPoller();
