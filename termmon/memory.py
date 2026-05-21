@@ -46,14 +46,12 @@ def add_entry(
     )
     conn.commit()
     entry_id = cur.lastrowid
-    count = conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
-    if count > max_entries:
-        conn.execute(
-            "DELETE FROM entries WHERE id IN "
-            "(SELECT id FROM entries ORDER BY created_at ASC LIMIT ?)",
-            (count - max_entries,),
-        )
-        conn.commit()
+    conn.execute(
+        "DELETE FROM entries WHERE id NOT IN "
+        "(SELECT id FROM entries ORDER BY created_at DESC LIMIT ?)",
+        (max_entries,),
+    )
+    conn.commit()
     return entry_id
 
 
@@ -62,7 +60,7 @@ def get_recent(
     type: str | None = None,
     limit: int = 50,
 ) -> list[dict]:
-    if type:
+    if type is not None:
         rows = conn.execute(
             "SELECT * FROM entries WHERE type = ? ORDER BY created_at DESC LIMIT ?",
             (type, limit),
