@@ -3,20 +3,19 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import pathlib
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-
-import pathlib
 
 import httpx
 import psutil
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
 from termmon.licensing import verify_license, LicenseInfo, Tier, require_tier
 from termmon.updater import check_updates, ollama_pull
 from termmon.plugin_loader import load_plugins, _resolve_plugins_dir, LoadedPlugin
-from pydantic import BaseModel
 
 from termmon import brain
 from termmon.config import get_settings, write_settings
@@ -183,7 +182,7 @@ async def lifespan(app: FastAPI):
 class MemoryAddRequest(BaseModel):
     type: str = "note"
     content: str
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 app = FastAPI(title="Terminal Monitor", lifespan=lifespan)
@@ -334,8 +333,8 @@ async def export_memory(request: Request):
     return _get_recent(conn, None, 100_000)
 
 
-@app.get("/api/memory/insights")
-async def memory_insights(request: Request, _: LicenseInfo = require_tier(Tier.DIAMOND)):
+@app.get("/api/memory/insights", dependencies=[require_tier(Tier.DIAMOND)])
+async def memory_insights(request: Request):
     conn = getattr(request.app.state, "memory_conn", None)
     if conn is None:
         return JSONResponse(status_code=503, content={"detail": "Memory not available"})
@@ -550,8 +549,13 @@ async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = requ
         mem_parts = []
         recent_chats = _get_recent(conn, "chat", 10)
         if recent_chats:
+            def _chat_role(meta_str: str) -> str:
+                try:
+                    return json.loads(meta_str or "{}").get("role", "?")
+                except Exception:
+                    return "?"
             chat_lines = "\n".join(
-                f"  [{json.loads(e['metadata']).get('role', '?')}] {e['content'][:200]}"
+                f"  [{_chat_role(e['metadata'])}] {e['content'][:200]}"
                 for e in reversed(recent_chats)
             )
             mem_parts.append(f"Recent conversation:\n{chat_lines}")
