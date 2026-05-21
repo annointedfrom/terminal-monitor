@@ -82,7 +82,7 @@ async def test_check_updates_has_update():
         respx.get(_MODELS_URL).mock(return_value=httpx.Response(200, json=_MODELS_JSON))
         result = await check_updates(None)
     assert result["app"]["has_update"] is True
-    assert result["app"]["current"] == "1.0.0"
+    assert result["app"]["current"] == __version__
     assert result["app"]["latest"] == "1.1.0"
     assert result["app"]["changelog"] == "Brain sync improvements"
 
@@ -130,3 +130,25 @@ async def test_check_updates_malformed_json():
         result = await check_updates(None)
     assert result["app"] is None
     assert result["models"] == []
+
+
+# ── ollama_pull tests ─────────────────────────────────────────────────────────
+
+async def test_ollama_pull_success():
+    import os
+    pull_url = os.environ.get("OLLAMA_URL", "http://localhost:11434") + "/api/pull"
+    with respx.mock:
+        respx.post(pull_url).mock(return_value=httpx.Response(200, json={"status": "success"}))
+        from termmon.updater import ollama_pull
+        await ollama_pull("ops-brain:v2")  # should not raise
+
+
+async def test_ollama_pull_failure_raises():
+    import os
+    pull_url = os.environ.get("OLLAMA_URL", "http://localhost:11434") + "/api/pull"
+    with respx.mock:
+        respx.post(pull_url).mock(return_value=httpx.Response(503, json={"error": "unavailable"}))
+        from termmon.updater import ollama_pull
+        import pytest
+        with pytest.raises(Exception):
+            await ollama_pull("ops-brain:v2")

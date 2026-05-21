@@ -67,7 +67,7 @@ async def check_updates(license_info: LicenseInfo | None) -> dict:
 
 
 async def ollama_pull(tag: str) -> None:
-    from termmon.scanner.ollama import _ollama_url
+    from termmon.scanner.ollama import _ollama_url  # deferred to avoid circular import
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"{_ollama_url()}/api/pull",
