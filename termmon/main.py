@@ -73,7 +73,10 @@ def _register_plugin_endpoints(app: FastAPI, plugin: LoadedPlugin) -> None:
         app.add_api_route(f"/api/plugins/{name}/tab", _tab, methods=["GET"])
 
     if plugin.has_router():
-        app.include_router(plugin.get_router(), prefix=f"/api/plugins/{name}")
+        try:
+            app.include_router(plugin.get_router(), prefix=f"/api/plugins/{name}")
+        except Exception as exc:
+            logger.warning("Plugin %s: router() failed: %s — action routes not registered", name, exc)
 
 
 async def _full_scan() -> dict:
