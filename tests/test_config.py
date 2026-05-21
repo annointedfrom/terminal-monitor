@@ -87,3 +87,27 @@ def test_license_key_loads_from_yaml(tmp_path):
     with patch.object(cfg_mod, "_CONFIG_PATH", config_path):
         s = cfg_mod._load()
     assert s.license_key == "eyJtest"
+
+
+def test_memory_config_defaults():
+    from termmon.config import Settings
+    s = Settings()
+    assert s.memory.enabled is True
+    assert s.memory.max_entries == 10000
+    assert s.memory.shell_history_import is True
+
+
+def test_memory_config_from_yaml(tmp_path, monkeypatch):
+    import yaml
+    import termmon.config as cfg_mod
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        yaml.dump({"memory": {"enabled": False, "max_entries": 500, "shell_history_import": False}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cfg_mod, "_CONFIG_PATH", cfg_file)
+    monkeypatch.setattr(cfg_mod, "_settings", None)
+    s = cfg_mod.get_settings()
+    assert s.memory.enabled is False
+    assert s.memory.max_entries == 500
+    assert s.memory.shell_history_import is False
