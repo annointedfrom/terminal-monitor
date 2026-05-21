@@ -179,7 +179,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   <div class="tab" onclick="switchTab('resources')">RESOURCES</div>
   <div class="tab" onclick="switchTab('history')">HISTORY</div>
   <div class="tab" onclick="switchTab('energy')">ENERGY</div>
-  <div class="tab" onclick="switchTab('ai')">AI</div>
+  <div class="tab" data-tier="mid" onclick="switchTab('ai')">AI</div>
 </div>
 
 <div id="tab-content">
@@ -252,6 +252,10 @@ var _svcPortMap = {};
 async function _loadConfig() {
   try {
     var r = await fetch('/api/config');
+    if (r.status === 403) {
+      window.location.href = '/setup';
+      return;
+    }
     if (!r.ok) return;
     _config = await r.json();
     _svcPortMap = {};
@@ -259,6 +263,13 @@ async function _loadConfig() {
     if (_config.title) document.title = _config.title;
     if (_config.default_model && !localStorage.getItem('ops-model')) {
       _selectedModel = _config.default_model;
+    }
+    var tier = _config.tier || 'none';
+    if (tier === 'base' || tier === 'none') {
+      document.querySelectorAll('[data-tier="mid"]').forEach(function(el){ el.style.display='none'; });
+      document.querySelectorAll('[data-tier="diamond"]').forEach(function(el){ el.style.display='none'; });
+    } else if (tier === 'mid') {
+      document.querySelectorAll('[data-tier="diamond"]').forEach(function(el){ el.style.display='none'; });
     }
   } catch(_) {}
 }

@@ -1,9 +1,20 @@
+import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
 from termmon.main import app
 from termmon.scanner.resources import get_resources
+from termmon.licensing import LicenseInfo, Tier
+
+
+@pytest.fixture(autouse=True)
+def _inject_base_license():
+    """Give app.state a base-tier license so middleware doesn't block API tests."""
+    app.state.license = LicenseInfo(tier=Tier.BASE, email="test@test.com", issued_at="2026-05-20")
+    yield
+    app.state.license = None
+
 
 client = TestClient(app)
 

@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 import pathlib
 
 import psutil
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from termmon.licensing import verify_license, LicenseInfo, Tier, require_tier
 from pydantic import BaseModel
 
 from termmon import brain
@@ -84,6 +85,7 @@ async def _brain_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    app.state.license = verify_license(settings.license_key)
     tasks = []
     if settings.brain.enabled:
         tasks.append(asyncio.create_task(_brain_loop()))
@@ -93,6 +95,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Terminal Monitor", lifespan=lifespan)
+
+_LICENSE_EXEMPT = {"/health", "/setup", "/api/setup", "/dashboard"}
+
+
+@app.middleware("http")
+async def license_gate(request: Request, call_next):
+    if request.url.path in _LICENSE_EXEMPT:
+        return await call_next(request)
+    if getattr(request.app.state, "license", None) is None:
+        return JSONResponse(
+            status_code=403,
+            content={"error": "license_required", "detail": "A valid license key is required"},
+        )
+    return await call_next(request)
 
 
 @app.get("/health")
@@ -154,6 +170,7 @@ async def get_current_alerts():
 @app.get("/api/config")
 async def get_config():
     settings = get_settings()
+    license_info: LicenseInfo | None = getattr(app.state, "license", None)
     return {
         "title": settings.dashboard.title,
         "default_model": settings.dashboard.default_model,
@@ -161,6 +178,7 @@ async def get_config():
         "services": [s.model_dump() for s in settings.services],
         "alerts": settings.alerts.model_dump(),
         "brain_enabled": settings.brain.enabled,
+        "tier": license_info.tier.name.lower() if license_info else "none",
     }
 
 
