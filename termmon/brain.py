@@ -16,15 +16,21 @@ async def _push_memory_entries(
     brain_url: str,
     conn: sqlite3.Connection,
     since_ts: str,
-) -> str:
+) -> str | None:
     """Fetch entries created after since_ts and POST each to the brain.
 
-    Returns a new ISO timestamp representing the sync time.
+    Returns the created_at timestamp of the last successfully pushed entry,
+    so the caller can advance the watermark only over entries that were pushed.
+    Returns None if nothing was pushed.
     """
-    all_entries = get_recent(conn, None, 200)
-    # ISO 8601 strings sort correctly as strings — no datetime parsing needed
-    to_push = [e for e in all_entries if e["created_at"] >= since_ts]
+    # Capture the cutoff before fetching so concurrent writes land in the next cycle
+    rows = conn.execute(
+        "SELECT * FROM entries WHERE created_at >= ? ORDER BY created_at ASC",
+        (since_ts,),
+    ).fetchall()
+    to_push = [dict(r) for r in rows]
 
+    last_pushed_ts: str | None = None
     async with httpx.AsyncClient() as client:
         for entry in to_push:
             try:
@@ -38,10 +44,11 @@ async def _push_memory_entries(
                     timeout=5.0,
                 )
                 resp.raise_for_status()
+                last_pushed_ts = entry["created_at"]
             except Exception as exc:
                 logger.warning("Brain memory-entry push failed for entry %s: %s", entry.get("id"), exc)
 
-    return datetime.now(timezone.utc).isoformat()
+    return last_pushed_ts
 
 
 async def sync(

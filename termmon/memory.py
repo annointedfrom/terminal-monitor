@@ -46,12 +46,14 @@ def add_entry(
     )
     conn.commit()
     entry_id: int = cur.lastrowid  # always non-None after a successful INSERT
-    conn.execute(
-        "DELETE FROM entries WHERE id NOT IN "
-        "(SELECT id FROM entries ORDER BY created_at DESC LIMIT ?)",
-        (max_entries,),
-    )
-    conn.commit()
+    count = conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
+    if count > max_entries:
+        conn.execute(
+            "DELETE FROM entries WHERE id NOT IN "
+            "(SELECT id FROM entries ORDER BY created_at DESC LIMIT ?)",
+            (max_entries,),
+        )
+        conn.commit()
     return entry_id
 
 
@@ -102,9 +104,11 @@ def _get_shell_history_paths() -> list[Path]:
                 text=True,
                 timeout=5,
             )
-            ps_path = Path(result.stdout.strip())
-            if ps_path.exists():
-                paths.append(ps_path)
+            out = result.stdout.strip()
+            if out:
+                ps_path = Path(out)
+                if ps_path.exists():
+                    paths.append(ps_path)
         except Exception as exc:
             logger.warning("Could not get PowerShell history path: %s", exc)
     return paths

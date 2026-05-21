@@ -153,32 +153,36 @@ async def lifespan(app: FastAPI):
             app.state.memory_conn = _init_db(
                 pathlib.Path("data/memory.db"), settings.memory.max_entries
             )
-            if settings.memory.shell_history_import:
-                _import_shell_history(app.state.memory_conn, settings.memory.max_entries)
-            scan = await _full_scan()
-            res = get_resources()
-            _add_entry(
-                app.state.memory_conn,
-                "snapshot",
-                (
-                    f"ports={scan['summary']['port_count']}, "
-                    f"processes={scan['summary']['process_count']}, "
-                    f"MCP={scan['summary']['mcp_count']}, "
-                    f"CPU={res.get('cpu', {}).get('percent', 0):.0f}%, "
-                    f"RAM={res.get('memory', {}).get('percent', 0):.0f}%"
-                ),
-                {
-                    "port_count": scan["summary"]["port_count"],
-                    "process_count": scan["summary"]["process_count"],
-                    "mcp_count": scan["summary"]["mcp_count"],
-                },
-                "auto",
-                settings.memory.max_entries,
-            )
-            app.state.last_memory_sync_ts = datetime.now(timezone.utc).isoformat()
         except Exception as exc:
-            logger.warning("Memory init failed: %s", exc)
+            logger.warning("Memory DB init failed: %s", exc)
             app.state.memory_conn = None
+        if app.state.memory_conn is not None:
+            try:
+                if settings.memory.shell_history_import:
+                    _import_shell_history(app.state.memory_conn, settings.memory.max_entries)
+                scan = await _full_scan()
+                res = get_resources()
+                _add_entry(
+                    app.state.memory_conn,
+                    "snapshot",
+                    (
+                        f"ports={scan['summary']['port_count']}, "
+                        f"processes={scan['summary']['process_count']}, "
+                        f"MCP={scan['summary']['mcp_count']}, "
+                        f"CPU={res.get('cpu_percent', 0):.0f}%, "
+                        f"RAM={res.get('memory', {}).get('percent', 0):.0f}%"
+                    ),
+                    {
+                        "port_count": scan["summary"]["port_count"],
+                        "process_count": scan["summary"]["process_count"],
+                        "mcp_count": scan["summary"]["mcp_count"],
+                    },
+                    "auto",
+                    settings.memory.max_entries,
+                )
+                app.state.last_memory_sync_ts = datetime.now(timezone.utc).isoformat()
+            except Exception as exc:
+                logger.warning("Memory startup snapshot failed (non-fatal): %s", exc)
     else:
         app.state.memory_conn = None
     tasks = []

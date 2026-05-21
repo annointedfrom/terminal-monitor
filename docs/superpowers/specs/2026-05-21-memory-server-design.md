@@ -43,7 +43,7 @@ SQLite embedded in Terminal Monitor. No new process, no external dependency. `da
 | `source` | TEXT | `shell_import`, `termmon`, `user`, `auto` |
 | `created_at` | TEXT | ISO 8601 timestamp |
 
-Cap: `max_entries` per type (default 10,000 total). Oldest pruned first when limit is hit.
+Cap: `max_entries` total across all types (default 10,000). When the cap is hit, the oldest entry by `created_at` is pruned first, regardless of type.
 
 ### `config.yaml` addition
 
@@ -227,7 +227,7 @@ No changes — memory uses the same MID/Diamond tier gates already enforced by t
 | Shell history line is not valid UTF-8 | Skip line, continue import |
 | `add_entry()` raises | Log warning, return without crashing caller |
 | Brain sync memory push fails | Log warning, next sync retries from same timestamp |
-| BASE license hits memory route | 402 via existing middleware — same as other MID+ routes |
+| BASE license hits memory route | 403 via require_tier route dependency — same as other MID+ routes |
 
 ---
 
@@ -256,7 +256,7 @@ No changes — memory uses the same MID/Diamond tier gates already enforced by t
 - `delete_entry` removes entry, returns True; returns False for missing id
 - `import_shell_history` adds entries, deduplicates on re-run
 - `import_shell_history` skips missing history files gracefully
-- `GET /api/memory` returns entries (MID+), 402 for BASE
+- `GET /api/memory` returns entries (MID+), 403 for BASE
 - `GET /api/memory?type=chat` filters by type
 - `GET /api/memory?search=uvicorn` filters by content
 - `POST /api/memory` stores a note, returns id
