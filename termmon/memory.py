@@ -45,7 +45,7 @@ def add_entry(
         (type, content, json.dumps(metadata), source, now),
     )
     conn.commit()
-    entry_id = cur.lastrowid
+    entry_id: int = cur.lastrowid  # always non-None after a successful INSERT
     conn.execute(
         "DELETE FROM entries WHERE id NOT IN "
         "(SELECT id FROM entries ORDER BY created_at DESC LIMIT ?)",
