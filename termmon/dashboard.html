@@ -1421,7 +1421,7 @@ function loadMemoryCommands() {
 }
 
 function deleteMemoryEntry(id) {
-  fetch('/api/memory/' + id, { method: 'DELETE' })
+  fetch('/api/memory/' + encodeURIComponent(id), { method: 'DELETE' })
     .then(function() { loadMemoryNotes(); })
     .catch(function() {});
 }
