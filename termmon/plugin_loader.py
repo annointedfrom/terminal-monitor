@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -62,6 +63,10 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
         if not entry.is_dir():
             continue
         plugin_name = entry.name
+
+        if not plugin_name or not re.match(r'^[a-z0-9][a-z0-9_-]{0,62}$', plugin_name):
+            logger.warning("Plugin directory %r: invalid name — skipped", plugin_name)
+            continue
 
         manifest_path = entry / "manifest.json"
         init_path = entry / "__init__.py"
