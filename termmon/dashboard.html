@@ -317,7 +317,7 @@ async function _loadPlugins() {
       var paneId = 'pane-plugin-' + p.name;
       var tab = document.createElement('div');
       tab.className = 'tab';
-      tab.setAttribute('data-plugin', esc(p.name));
+      tab.setAttribute('data-plugin', p.name);
       tab.textContent = esc(p.label);
       tab.onclick = (function(id) { return function() { switchTab(id); }; })(tabId);
       tabBar.appendChild(tab);
