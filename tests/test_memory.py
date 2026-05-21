@@ -116,3 +116,187 @@ def test_add_entry_stores_metadata(conn):
     meta = json.loads(entry["metadata"])
     assert meta["role"] == "you"
     assert meta["model"] == "ops-brain"
+
+
+import sqlite3 as _sqlite3
+import tempfile
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from fastapi.testclient import TestClient
+
+from termmon.main import app
+from termmon.licensing import Tier
+from termmon.memory import init_db as _init_db, add_entry as _add_entry
+
+
+def _mid_license():
+    from termmon.licensing import LicenseInfo
+    return LicenseInfo(tier=Tier.MID, email="test@test.com", issued_at="2026-01-01")
+
+
+def _diamond_license():
+    from termmon.licensing import LicenseInfo
+    return LicenseInfo(tier=Tier.DIAMOND, email="test@test.com", issued_at="2026-01-01")
+
+
+def _base_license():
+    from termmon.licensing import LicenseInfo
+    return LicenseInfo(tier=Tier.BASE, email="test@test.com", issued_at="2026-01-01")
+
+
+@pytest.fixture
+def mem_client(tmp_path):
+    conn = _init_db(tmp_path / "api_test.db")
+    app.state.memory_conn = conn
+    with patch("termmon.main.verify_license", return_value=_mid_license()):
+        with TestClient(app) as client:
+            yield client
+    app.state.memory_conn = None
+    app.state.license = None
+
+
+@pytest.fixture
+def diamond_client(tmp_path):
+    conn = _init_db(tmp_path / "diamond_test.db")
+    app.state.memory_conn = conn
+    with patch("termmon.main.verify_license", return_value=_diamond_license()):
+        with TestClient(app) as client:
+            yield client
+    app.state.memory_conn = None
+    app.state.license = None
+
+
+def test_get_memory_returns_entries(mem_client, tmp_path):
+    _add_entry(app.state.memory_conn, "note", "my note", {}, "user")
+    r = mem_client.get("/api/memory")
+    assert r.status_code == 200
+    data = r.json()
+    assert any(e["content"] == "my note" for e in data)
+
+
+def test_get_memory_requires_mid(tmp_path):
+    conn = _init_db(tmp_path / "base_test.db")
+    app.state.memory_conn = conn
+    with patch("termmon.main.verify_license", return_value=_base_license()):
+        with TestClient(app) as c:
+            r = c.get("/api/memory")
+    assert r.status_code == 403
+    app.state.memory_conn = None
+    app.state.license = None
+
+
+def test_get_memory_filters_type(mem_client):
+    _add_entry(app.state.memory_conn, "note", "a note", {}, "user")
+    _add_entry(app.state.memory_conn, "command", "ls -la", {}, "termmon")
+    r = mem_client.get("/api/memory?type=command")
+    assert r.status_code == 200
+    assert all(e["type"] == "command" for e in r.json())
+
+
+def test_get_memory_search(mem_client):
+    _add_entry(app.state.memory_conn, "command", "uvicorn main:app --port 8084", {}, "termmon")
+    _add_entry(app.state.memory_conn, "command", "git push origin master", {}, "termmon")
+    r = mem_client.get("/api/memory?search=uvicorn")
+    assert r.status_code == 200
+    results = r.json()
+    assert len(results) == 1
+    assert "uvicorn" in results[0]["content"]
+
+
+def test_post_memory_stores_note(mem_client):
+    r = mem_client.post("/api/memory", json={"type": "note", "content": "project context"})
+    assert r.status_code == 200
+    assert "id" in r.json()
+    entries = mem_client.get("/api/memory?type=note").json()
+    assert any(e["content"] == "project context" for e in entries)
+
+
+def test_delete_memory_removes_entry(mem_client):
+    entry_id = _add_entry(app.state.memory_conn, "note", "to delete", {}, "user")
+    r = mem_client.delete(f"/api/memory/{entry_id}")
+    assert r.status_code == 200
+    assert r.json()["deleted"] is True
+    entries = mem_client.get("/api/memory").json()
+    assert not any(e["id"] == entry_id for e in entries)
+
+
+def test_delete_memory_missing_returns_404(mem_client):
+    r = mem_client.delete("/api/memory/99999")
+    assert r.status_code == 404
+
+
+def test_import_shell_endpoint_returns_count(mem_client, tmp_path):
+    hist = tmp_path / "hist.txt"
+    hist.write_text("git status\ngit push\n", encoding="utf-8")
+    with patch("termmon.memory._get_shell_history_paths", return_value=[hist]):
+        r = mem_client.post("/api/memory/import-shell")
+    assert r.status_code == 200
+    assert r.json()["added"] == 2
+
+
+def test_export_memory_returns_list(mem_client):
+    _add_entry(app.state.memory_conn, "note", "exported note", {}, "user")
+    r = mem_client.get("/api/memory/export")
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+    assert any(e["content"] == "exported note" for e in r.json())
+
+
+def test_insights_requires_diamond(mem_client):
+    r = mem_client.get("/api/memory/insights")
+    assert r.status_code == 403
+
+
+def test_insights_returns_local_fallback(diamond_client):
+    _add_entry(app.state.memory_conn, "command", "git status", {}, "termmon")
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_inst = MagicMock()
+        mock_inst.__aenter__ = AsyncMock(return_value=mock_inst)
+        mock_inst.__aexit__ = AsyncMock(return_value=False)
+        mock_inst.get = AsyncMock(side_effect=Exception("brain down"))
+        mock_cls.return_value = mock_inst
+        r = diamond_client.get("/api/memory/insights")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source"] == "local"
+    assert isinstance(data["suggestions"], list)
+
+
+def test_chat_injects_memory_context(tmp_path):
+    conn = _init_db(tmp_path / "chat_test.db")
+    import json as _json
+    _add_entry(conn, "chat", "what is python?", {"role": "you", "model": "ops-brain"}, "auto")
+    _add_entry(conn, "command", "uvicorn main:app", {}, "termmon")
+    app.state.memory_conn = conn
+    captured = []
+
+    async def fake_generate(prompt, system, model=None):
+        captured.append(system)
+        return {"available": True, "reply": "test reply"}
+
+    with patch("termmon.main.verify_license", return_value=_mid_license()):
+        with patch("termmon.main.ollama.generate", side_effect=fake_generate):
+            with TestClient(app) as c:
+                c.post("/api/chat", json={"message": "hello", "model": "ops-brain"})
+
+    assert captured, "ollama.generate was never called"
+    assert any(
+        "Recent conversation" in s or "Recent commands" in s
+        for s in captured
+    ), f"Memory context not injected. System prompt: {captured}"
+    app.state.memory_conn = None
+    app.state.license = None
+
+
+def test_chat_no_memory_conn_still_works():
+    app.state.memory_conn = None
+
+    async def fake_generate(prompt, system, model=None):
+        return {"available": True, "reply": "ok"}
+
+    with patch("termmon.main.verify_license", return_value=_mid_license()):
+        with patch("termmon.main.ollama.generate", side_effect=fake_generate):
+            with TestClient(app) as c:
+                r = c.post("/api/chat", json={"message": "hello", "model": "ops-brain"})
+    assert r.status_code == 200
+    app.state.license = None
