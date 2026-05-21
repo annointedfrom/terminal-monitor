@@ -209,3 +209,106 @@ def test_resolve_plugins_dir_default():
 def test_resolve_plugins_dir_custom(tmp_path):
     from termmon.plugin_loader import _resolve_plugins_dir
     assert _resolve_plugins_dir(str(tmp_path)) == tmp_path
+
+
+# ─── API endpoint tests ────────────────────────────────────────────────────────
+# These tests use a minimal FastAPI app (not termmon.main.app) to avoid
+# polluting the main app's route table across test runs.
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+
+def _endpoint_client(plugin) -> TestClient:
+    """Minimal app with plugin routes registered via _register_plugin_endpoints."""
+    from termmon.main import _register_plugin_endpoints
+    from termmon.licensing import LicenseInfo, Tier
+
+    mini = FastAPI()
+    mini.state.license = LicenseInfo(tier=Tier.BASE, email="t@test.com", issued_at="2026-05-21")
+    mini.state.plugins = [plugin]
+    _register_plugin_endpoints(mini, plugin)
+
+    @mini.get("/api/plugins")
+    async def _list():
+        return [
+            {
+                "name": p.meta.name,
+                "label": p.meta.label,
+                "version": p.meta.version,
+                "description": p.meta.description,
+                "has_tab": p.meta.has_tab,
+            }
+            for p in mini.state.plugins
+        ]
+
+    return TestClient(mini)
+
+
+def test_get_plugins_returns_metadata(tmp_path, rsa_keypair):
+    from termmon.plugin_loader import load_plugins
+    private_pem, public_pem = rsa_keypair
+    d = tmp_path / "endplugin"
+    _write_plugin(d, private_pem=private_pem, name="endplugin")
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        plugins = load_plugins(tmp_path)
+    client = _endpoint_client(plugins[0])
+    r = client.get("/api/plugins")
+    assert r.status_code == 200
+    body = r.json()
+    assert body[0]["name"] == "endplugin"
+    assert "label" in body[0]
+    assert "has_tab" in body[0]
+
+
+def test_plugin_data_returns_scan_result(tmp_path, rsa_keypair):
+    from termmon.plugin_loader import load_plugins
+    private_pem, public_pem = rsa_keypair
+    d = tmp_path / "dataplugin"
+    _write_plugin(d, private_pem=private_pem, name="dataplugin")
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        plugins = load_plugins(tmp_path)
+    client = _endpoint_client(plugins[0])
+    r = client.get("/api/plugins/dataplugin/data")
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+
+
+def test_plugin_data_returns_500_when_scan_raises(tmp_path, rsa_keypair):
+    from termmon.plugin_loader import load_plugins
+    private_pem, public_pem = rsa_keypair
+    d = tmp_path / "errplugin"
+    _write_plugin(d, private_pem=private_pem, name="errplugin")
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        plugins = load_plugins(tmp_path)
+    plugin = plugins[0]
+    with patch.object(plugin.module, "scan", side_effect=RuntimeError("boom")):
+        client = _endpoint_client(plugin)
+        r = client.get("/api/plugins/errplugin/data")
+    assert r.status_code == 500
+
+
+def test_plugin_tab_returns_html(tmp_path, rsa_keypair):
+    from termmon.plugin_loader import load_plugins
+    private_pem, public_pem = rsa_keypair
+    d = tmp_path / "tabplugin"
+    _write_plugin(d, private_pem=private_pem, name="tabplugin", has_tab=True)
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        plugins = load_plugins(tmp_path)
+    client = _endpoint_client(plugins[0])
+    r = client.get("/api/plugins/tabplugin/tab")
+    assert r.status_code == 200
+    assert "<div>" in r.text
+
+
+def test_plugin_tab_returns_404_when_has_tab_false(tmp_path, rsa_keypair):
+    from termmon.plugin_loader import load_plugins
+    private_pem, public_pem = rsa_keypair
+    d = tmp_path / "notabplugin"
+    _write_plugin(d, private_pem=private_pem, name="notabplugin")
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        plugins = load_plugins(tmp_path)
+    client = _endpoint_client(plugins[0])
+    # No /tab route registered when has_tab=False → FastAPI returns 404
+    r = client.get("/api/plugins/notabplugin/tab")
+    assert r.status_code == 404

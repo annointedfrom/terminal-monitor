@@ -11,9 +11,10 @@ import pathlib
 
 import psutil
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from termmon.licensing import verify_license, LicenseInfo, Tier, require_tier
 from termmon.updater import check_updates, ollama_pull
+from termmon.plugin_loader import load_plugins, _resolve_plugins_dir, LoadedPlugin
 from pydantic import BaseModel
 
 from termmon import brain
@@ -46,6 +47,33 @@ _PROC_DESC: dict[str, str] = _load_proc_desc()
 _desc_cache: dict[str, str] = {}
 _last_scan: dict | None = None
 _last_resources: dict | None = None
+
+
+def _register_plugin_endpoints(app: FastAPI, plugin: LoadedPlugin) -> None:
+    name = plugin.meta.name
+    _scan = plugin.scan
+    _tab_html = plugin.tab_html
+
+    async def _data():
+        try:
+            return _scan()
+        except Exception as exc:
+            logger.warning("Plugin %s scan() raised: %s", name, exc)
+            return JSONResponse(status_code=500, content={"detail": "Plugin error"})
+
+    app.add_api_route(f"/api/plugins/{name}/data", _data, methods=["GET"])
+
+    if plugin.meta.has_tab:
+        async def _tab():
+            html = _tab_html()
+            if html is None:
+                return JSONResponse(status_code=404, content={"detail": "tab.html not found"})
+            return HTMLResponse(html)
+
+        app.add_api_route(f"/api/plugins/{name}/tab", _tab, methods=["GET"])
+
+    if plugin.has_router():
+        app.include_router(plugin.get_router(), prefix=f"/api/plugins/{name}")
 
 
 async def _full_scan() -> dict:
@@ -88,6 +116,10 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.license = verify_license(settings.license_key)
     app.state.update_cache = None
+    plugins_dir = _resolve_plugins_dir(settings.plugins_dir)
+    app.state.plugins = load_plugins(plugins_dir)
+    for plugin in app.state.plugins:
+        _register_plugin_endpoints(app, plugin)
     tasks = []
     if settings.brain.enabled:
         tasks.append(asyncio.create_task(_brain_loop()))
@@ -182,6 +214,21 @@ async def get_config(request: Request):
         "brain_enabled": settings.brain.enabled,
         "tier": license_info.tier.name.lower() if license_info else "none",
     }
+
+
+@app.get("/api/plugins")
+async def list_plugins(request: Request):
+    plugins = getattr(request.app.state, "plugins", [])
+    return [
+        {
+            "name": p.meta.name,
+            "label": p.meta.label,
+            "version": p.meta.version,
+            "description": p.meta.description,
+            "has_tab": p.meta.has_tab,
+        }
+        for p in plugins
+    ]
 
 
 @app.get("/api/update/check")
