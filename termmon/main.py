@@ -101,7 +101,7 @@ _LICENSE_EXEMPT = {"/health", "/setup", "/api/setup", "/dashboard"}
 
 @app.middleware("http")
 async def license_gate(request: Request, call_next):
-    if request.url.path in _LICENSE_EXEMPT:
+    if request.url.path.rstrip("/") in _LICENSE_EXEMPT:
         return await call_next(request)
     if getattr(request.app.state, "license", None) is None:
         return JSONResponse(
@@ -168,9 +168,9 @@ async def get_current_alerts():
 
 
 @app.get("/api/config")
-async def get_config():
+async def get_config(request: Request):
     settings = get_settings()
-    license_info: LicenseInfo | None = getattr(app.state, "license", None)
+    license_info: LicenseInfo | None = getattr(request.app.state, "license", None)
     return {
         "title": settings.dashboard.title,
         "default_model": settings.dashboard.default_model,

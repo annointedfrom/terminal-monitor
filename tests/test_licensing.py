@@ -150,7 +150,6 @@ def test_require_tier_allows_diamond_for_diamond_route():
 
 
 import yaml
-from fastapi.testclient import TestClient
 from termmon.main import app
 
 
