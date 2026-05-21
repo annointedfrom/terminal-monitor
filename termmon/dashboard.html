@@ -269,7 +269,7 @@ async function _checkUpdates() {
         var btnId = 'pull-' + m.tag.replace(/[^a-z0-9]/gi, '-');
         if (m.available) {
           parts.push('<span>' + esc(m.name) + ' model update (' + esc(String(m.size_gb)) + ' GB)&nbsp;' +
-            '<button id="' + btnId + '" onclick="pullModel(\'' + m.tag + '\')" ' +
+            '<button id="' + btnId + '" data-tag="' + esc(m.tag) + '" onclick="pullModel(this.dataset.tag)" ' +
             'style="font-size:9px;padding:1px 6px;cursor:pointer;background:#1a3a1a;color:#2ecc71;border:1px solid #1a4a1a">Pull Model</button></span>');
         } else {
           parts.push('<span style="color:#666">' + esc(m.name) + ' model update available (upgrade tier to pull)</span>');
