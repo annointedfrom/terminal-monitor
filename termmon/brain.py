@@ -28,7 +28,7 @@ async def _push_memory_entries(
     async with httpx.AsyncClient() as client:
         for entry in to_push:
             try:
-                await client.post(
+                resp = await client.post(
                     f"{brain_url}/api/claude/remember",
                     json={
                         "text": entry["content"],
@@ -37,6 +37,7 @@ async def _push_memory_entries(
                     },
                     timeout=5.0,
                 )
+                resp.raise_for_status()
             except Exception as exc:
                 logger.warning("Brain memory-entry push failed for entry %s: %s", entry.get("id"), exc)
 
