@@ -120,7 +120,17 @@ async def _brain_loop() -> None:
         await asyncio.sleep(60)
         try:
             result = await _full_scan()
-            await brain.sync(result)
+            license_info = getattr(app.state, "license", None)
+            conn = getattr(app.state, "memory_conn", None)
+            since_ts = getattr(app.state, "last_memory_sync_ts", None)
+            is_diamond = license_info is not None and license_info.tier == Tier.DIAMOND
+            new_ts = await brain.sync(
+                result,
+                conn=conn if is_diamond else None,
+                since_ts=since_ts if is_diamond else None,
+            )
+            if new_ts:
+                app.state.last_memory_sync_ts = new_ts
         except Exception as exc:
             logger.warning("Brain loop error: %s", exc)
 

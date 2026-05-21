@@ -300,3 +300,58 @@ def test_chat_no_memory_conn_still_works():
                 r = c.post("/api/chat", json={"message": "hello", "model": "ops-brain"})
     assert r.status_code == 200
     app.state.license = None
+
+
+def test_brain_sync_pushes_memory_for_diamond(tmp_path):
+    import asyncio
+    from unittest.mock import AsyncMock, patch, MagicMock
+    from termmon.brain import sync
+    from termmon.memory import init_db as _init_db, add_entry as _add_entry
+
+    conn = _init_db(tmp_path / "brain_test.db")
+    _add_entry(conn, "command", "git push", {}, "termmon")
+    since_ts = "2020-01-01T00:00:00+00:00"
+
+    posted_payloads = []
+
+    async def fake_post(url, json=None, timeout=None):
+        posted_payloads.append(json)
+        resp = MagicMock()
+        resp.status_code = 200
+        return resp
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(side_effect=fake_post)
+
+    scan = {"summary": {"port_count": 1, "mcp_count": 0}, "ports": []}
+    with patch("termmon.brain.httpx.AsyncClient", return_value=mock_client):
+        new_ts = asyncio.run(sync(scan, conn=conn, since_ts=since_ts))
+    assert new_ts is not None
+    memory_posts = [p for p in posted_payloads if p and "terminal-monitor" in p.get("source", "")]
+    assert any("git push" in p.get("text", "") for p in memory_posts)
+
+
+def test_brain_sync_skips_memory_for_mid(tmp_path):
+    import asyncio
+    from unittest.mock import AsyncMock, patch, MagicMock
+    from termmon.brain import sync
+
+    scan = {"summary": {"port_count": 0, "mcp_count": 0}, "ports": []}
+    posted_payloads = []
+
+    async def fake_post(url, json=None, timeout=None):
+        posted_payloads.append(json)
+        resp = MagicMock()
+        resp.status_code = 200
+        return resp
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(side_effect=fake_post)
+
+    with patch("termmon.brain.httpx.AsyncClient", return_value=mock_client):
+        result = asyncio.run(sync(scan, conn=None, since_ts=None))
+    assert result is None
