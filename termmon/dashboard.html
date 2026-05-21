@@ -257,21 +257,22 @@ async function _checkUpdates() {
     if (!r.ok) return;
     var data = await r.json();
     var bar = document.getElementById('update-bar');
+    var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
     var parts = [];
     if (data.app && data.app.has_update) {
-      parts.push('<span>App update: v' + data.app.latest + ' — ' + data.app.changelog +
-        ' &nbsp;<a href="' + data.app.download_url + '" target="_blank" style="color:#27ae60;text-decoration:underline">Download</a></span>');
+      parts.push('<span>App update: v' + esc(data.app.latest) + ' — ' + esc(data.app.changelog) +
+        ' &nbsp;<a href="' + esc(data.app.download_url) + '" target="_blank" style="color:#27ae60;text-decoration:underline">Download</a></span>');
     }
     if (data.models) {
       data.models.forEach(function(m) {
         if (!m.has_update) return;
         var btnId = 'pull-' + m.tag.replace(/[^a-z0-9]/gi, '-');
         if (m.available) {
-          parts.push('<span>' + m.name + ' model update (' + m.size_gb + ' GB)&nbsp;' +
+          parts.push('<span>' + esc(m.name) + ' model update (' + esc(String(m.size_gb)) + ' GB)&nbsp;' +
             '<button id="' + btnId + '" onclick="pullModel(\'' + m.tag + '\')" ' +
             'style="font-size:9px;padding:1px 6px;cursor:pointer;background:#1a3a1a;color:#2ecc71;border:1px solid #1a4a1a">Pull Model</button></span>');
         } else {
-          parts.push('<span style="color:#666">' + m.name + ' model update available (upgrade tier to pull)</span>');
+          parts.push('<span style="color:#666">' + esc(m.name) + ' model update available (upgrade tier to pull)</span>');
         }
       });
     }
