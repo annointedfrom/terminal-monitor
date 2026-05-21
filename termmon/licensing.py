@@ -66,7 +66,7 @@ def verify_license(key_string: str) -> LicenseInfo | None:
 
 
 def verify_plugin_key(token: str, plugin_name: str) -> bool:
-    if not token or not PUBLIC_KEY:
+    if not token or not plugin_name or not PUBLIC_KEY:
         return False
     try:
         payload = jwt.decode(

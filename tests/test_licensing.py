@@ -358,3 +358,14 @@ def test_verify_plugin_key_main_license_token_rejected(rsa_keypair):
     )
     with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
         assert lic_mod.verify_plugin_key(token, "docker") is False
+
+
+def test_verify_plugin_key_empty_plugin_name_returns_false(rsa_keypair):
+    private_pem, public_pem = rsa_keypair
+    token = pyjwt.encode(
+        {"sub": "termmon-plugin-", "email": "buyer@test.com", "issued_at": "2026-05-21"},
+        private_pem,
+        algorithm="RS256",
+    )
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        assert lic_mod.verify_plugin_key(token, "") is False
