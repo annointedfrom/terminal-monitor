@@ -210,3 +210,55 @@ def test_api_config_returns_tier_field(base_license_client):
 def test_api_config_blocked_without_license(no_license_client):
     r = no_license_client.get("/api/config")
     assert r.status_code == 403
+
+
+@pytest.fixture
+def mid_license_client(rsa_keypair, tmp_path, monkeypatch):
+    import termmon.config as cfg_mod
+    private_pem, public_pem = rsa_keypair
+    monkeypatch.setattr(lic_mod, "PUBLIC_KEY", public_pem)
+    token = _make_token(private_pem, "mid")
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(yaml.dump({"license_key": token}), encoding="utf-8")
+    cfg_mod._settings = None
+    monkeypatch.setattr(cfg_mod, "_CONFIG_PATH", cfg_path)
+    with TestClient(app) as client:
+        yield client
+    cfg_mod._settings = None
+
+
+@pytest.fixture
+def diamond_license_client(rsa_keypair, tmp_path, monkeypatch):
+    import termmon.config as cfg_mod
+    private_pem, public_pem = rsa_keypair
+    monkeypatch.setattr(lic_mod, "PUBLIC_KEY", public_pem)
+    token = _make_token(private_pem, "diamond")
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(yaml.dump({"license_key": token}), encoding="utf-8")
+    cfg_mod._settings = None
+    monkeypatch.setattr(cfg_mod, "_CONFIG_PATH", cfg_path)
+    with TestClient(app) as client:
+        yield client
+    cfg_mod._settings = None
+
+
+def test_chat_blocked_for_base_license(base_license_client):
+    r = base_license_client.post("/api/chat", json={"message": "hi", "model": "llama3.2:3b"})
+    assert r.status_code == 403
+
+
+def test_chat_allowed_for_mid_license(mid_license_client):
+    # Mid license reaches the handler — may return 503 (no Ollama) but NOT 403
+    r = mid_license_client.post("/api/chat", json={"message": "hi", "model": "llama3.2:3b"})
+    assert r.status_code != 403
+
+
+def test_brain_sync_blocked_for_mid_license(mid_license_client):
+    r = mid_license_client.post("/api/brain/sync")
+    assert r.status_code == 403
+
+
+def test_brain_sync_allowed_for_diamond_license(diamond_license_client):
+    # Diamond license reaches the handler — may return any non-403 status
+    r = diamond_license_client.post("/api/brain/sync")
+    assert r.status_code != 403

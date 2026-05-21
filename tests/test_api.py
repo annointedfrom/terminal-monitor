@@ -10,8 +10,8 @@ from termmon.licensing import LicenseInfo, Tier
 
 @pytest.fixture(autouse=True)
 def _inject_base_license():
-    """Give app.state a base-tier license so middleware doesn't block API tests."""
-    app.state.license = LicenseInfo(tier=Tier.BASE, email="test@test.com", issued_at="2026-05-20")
+    """Give app.state a diamond-tier license so middleware and route guards don't block API tests."""
+    app.state.license = LicenseInfo(tier=Tier.DIAMOND, email="test@test.com", issued_at="2026-05-20")
     yield
     app.state.license = None
 

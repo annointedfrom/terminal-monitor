@@ -183,7 +183,7 @@ async def get_config(request: Request):
 
 
 @app.post("/api/brain/sync")
-async def brain_sync():
+async def brain_sync(_: LicenseInfo = require_tier(Tier.DIAMOND)):
     result = await _full_scan()
     await brain.sync(result)
     return {"synced": True, "summary": result["summary"]}
@@ -302,7 +302,7 @@ class SetupRequest(BaseModel):
 
 
 @app.post("/api/chat")
-async def chat_with_ai(req: ChatRequest):
+async def chat_with_ai(req: ChatRequest, _: LicenseInfo = require_tier(Tier.MID)):
     scan = await _full_scan()
     ports_summary = [
         {"process": p["process"], "port": p["port"], "memory_mb": round(p.get("memory_mb", 0))}
@@ -379,6 +379,10 @@ async def training_status():
 @app.websocket("/ws/terminal")
 async def terminal_ws(websocket: WebSocket):
     """Local-only PowerShell command runner — one process per command."""
+    info: LicenseInfo | None = getattr(websocket.app.state, "license", None)
+    if info is None or info.tier < Tier.MID:
+        await websocket.close(code=1008, reason="license_required")
+        return
     await websocket.accept()
     try:
         while True:
