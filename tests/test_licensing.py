@@ -67,6 +67,14 @@ def test_verify_license_diamond_tier(rsa_keypair):
     assert result.tier == Tier.DIAMOND
 
 
+def test_verify_license_invalid_tier_returns_none(rsa_keypair):
+    private_pem, public_pem = rsa_keypair
+    token = _make_token(private_pem, "platinum")  # not a valid tier
+    with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
+        result = verify_license(token)
+    assert result is None
+
+
 def test_verify_license_wrong_sub_returns_none(rsa_keypair):
     private_pem, public_pem = rsa_keypair
     token = _make_token(private_pem, "mid", sub="other-product")
@@ -262,3 +270,22 @@ def test_brain_sync_allowed_for_diamond_license(diamond_license_client):
     # Diamond license reaches the handler — may return any non-403 status
     r = diamond_license_client.post("/api/brain/sync")
     assert r.status_code != 403
+
+
+def test_terminal_ws_blocked_for_base_license(base_license_client):
+    import pytest
+    from starlette.websockets import WebSocketDisconnect
+    with pytest.raises(WebSocketDisconnect):
+        with base_license_client.websocket_connect("/ws/terminal") as ws:
+            pass
+
+
+def test_terminal_ws_allowed_for_mid_license(mid_license_client):
+    from starlette.websockets import WebSocketDisconnect
+    try:
+        with mid_license_client.websocket_connect("/ws/terminal") as ws:
+            ws.send_text("echo hello")
+            data = ws.receive_text()
+            assert "hello" in data or "[exit" in data
+    except WebSocketDisconnect:
+        pytest.fail("MID license should be allowed to connect to /ws/terminal")

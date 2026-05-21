@@ -189,7 +189,7 @@ async def brain_sync(_: LicenseInfo = require_tier(Tier.DIAMOND)):
     return {"synced": True, "summary": result["summary"]}
 
 
-@app.post("/api/kill/{pid}")
+@app.post("/api/kill/{pid}", dependencies=[require_tier(Tier.MID)])
 async def kill_process(pid: int):
     try:
         proc = psutil.Process(pid)
