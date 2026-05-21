@@ -39,6 +39,7 @@ class Settings(BaseModel):
     services: list[ServiceConfig] = Field(default_factory=list)
     alerts: AlertsConfig = Field(default_factory=AlertsConfig)
     license_key: str = ""
+    plugins_dir: Optional[str] = None
 
 
 _settings: Optional[Settings] = None
