@@ -13,6 +13,7 @@ import psutil
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from termmon.licensing import verify_license, LicenseInfo, Tier, require_tier
+from termmon.updater import check_updates, ollama_pull
 from pydantic import BaseModel
 
 from termmon import brain
@@ -86,6 +87,7 @@ async def _brain_loop() -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.license = verify_license(settings.license_key)
+    app.state.update_cache = None
     tasks = []
     if settings.brain.enabled:
         tasks.append(asyncio.create_task(_brain_loop()))
@@ -180,6 +182,24 @@ async def get_config(request: Request):
         "brain_enabled": settings.brain.enabled,
         "tier": license_info.tier.name.lower() if license_info else "none",
     }
+
+
+@app.get("/api/update/check")
+async def update_check(request: Request):
+    if request.app.state.update_cache is None:
+        request.app.state.update_cache = await check_updates(
+            getattr(request.app.state, "license", None)
+        )
+    return request.app.state.update_cache
+
+
+@app.post("/api/update/model/pull", dependencies=[require_tier(Tier.MID)])
+async def model_pull(req: ModelPullRequest):
+    try:
+        await ollama_pull(req.tag)
+        return {"pulled": True, "tag": req.tag}
+    except Exception:
+        return JSONResponse(status_code=503, content={"detail": "Ollama unavailable"})
 
 
 @app.post("/api/brain/sync")
@@ -286,6 +306,10 @@ class TrainingPair(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     model: str = "ops-brain"
+
+
+class ModelPullRequest(BaseModel):
+    tag: str
 
 
 class SetupRequest(BaseModel):

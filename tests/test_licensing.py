@@ -289,3 +289,30 @@ def test_terminal_ws_allowed_for_mid_license(mid_license_client):
             assert "hello" in data or "[exit" in data
     except WebSocketDisconnect:
         pytest.fail("MID license should be allowed to connect to /ws/terminal")
+
+
+# ── Update server endpoint tests ──────────────────────────────────────────────
+
+def test_update_check_accessible_with_base_license(base_license_client):
+    r = base_license_client.get("/api/update/check")
+    # Returns 200; manifests unavailable in test env so app/models may be null/[]
+    assert r.status_code == 200
+    body = r.json()
+    assert "app" in body
+    assert "models" in body
+
+
+def test_update_check_blocked_without_license(no_license_client):
+    r = no_license_client.get("/api/update/check")
+    assert r.status_code == 403
+
+
+def test_model_pull_blocked_for_base_license(base_license_client):
+    r = base_license_client.post("/api/update/model/pull", json={"tag": "ops-brain:v2"})
+    assert r.status_code == 403
+
+
+def test_model_pull_reaches_handler_for_mid_license(mid_license_client):
+    # Ollama not running in CI — expects 503 (no Ollama), NOT 403 (license block)
+    r = mid_license_client.post("/api/update/model/pull", json={"tag": "ops-brain:v2"})
+    assert r.status_code != 403
