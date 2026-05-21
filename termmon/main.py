@@ -198,7 +198,8 @@ async def model_pull(req: ModelPullRequest):
     try:
         await ollama_pull(req.tag)
         return {"pulled": True, "tag": req.tag}
-    except Exception:
+    except Exception as exc:
+        logger.warning("Model pull failed for tag=%s: %s", req.tag, exc)
         return JSONResponse(status_code=503, content={"detail": "Ollama unavailable"})
 
 
