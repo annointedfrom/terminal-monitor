@@ -44,3 +44,45 @@ def test_write_config_overwrites_existing(tmp_path):
     loaded = yaml.safe_load(out.read_text())
     assert "old" not in loaded
     assert loaded["dashboard"]["title"] == "New"
+
+
+def test_setup_post_updates_app_state_license(tmp_path, monkeypatch):
+    import yaml
+    import termmon.config as cfg_mod
+    import termmon.licensing as lic_mod
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
+    import jwt as pyjwt
+    from fastapi.testclient import TestClient
+    from termmon.main import app
+
+    # Generate test keypair
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    public_pem = private_key.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+    monkeypatch.setattr(lic_mod, "PUBLIC_KEY", public_pem)
+
+    token = pyjwt.encode(
+        {"tier": "mid", "email": "t@t.com", "issued_at": "2026-05-20", "sub": "terminal-monitor"},
+        private_pem, algorithm="RS256"
+    )
+
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text("", encoding="utf-8")
+    cfg_mod._settings = None
+    monkeypatch.setattr(cfg_mod, "_CONFIG_PATH", cfg_path)
+
+    with TestClient(app) as client:
+        r = client.post("/api/setup", json={"license_key": token})
+        assert r.status_code == 200
+        assert r.json()["saved"] is True
+        assert app.state.license is not None
+        assert app.state.license.tier.name == "MID"
+
+    cfg_mod._settings = None

@@ -299,6 +299,7 @@ class SetupRequest(BaseModel):
     ram_threshold: int = 80
     gpu_temp_threshold: int = 80
     offline_notify: bool = True
+    license_key: str = ""
 
 
 @app.post("/api/chat")
@@ -422,7 +423,7 @@ async def setup_page():
 
 
 @app.post("/api/setup")
-async def setup_post(req: SetupRequest):
+async def setup_post(req: SetupRequest, request: Request):
     from termmon.config import (
         Settings, DashboardConfig, BrainConfig, ServiceConfig, AlertsConfig,
     )
@@ -444,8 +445,10 @@ async def setup_post(req: SetupRequest):
             gpu_temp_threshold=req.gpu_temp_threshold,
             offline_notify=req.offline_notify,
         ),
+        license_key=req.license_key,
     )
     write_settings(settings)
+    request.app.state.license = verify_license(req.license_key)
     return {"saved": True}
 
 

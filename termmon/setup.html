@@ -33,6 +33,15 @@ input:focus{outline:none;border-color:#00ff41}
 <body>
 <h1>&gt; TERMINAL MONITOR SETUP</h1>
 
+<h2>License</h2>
+<div class="section">
+  <div class="field">
+    <label>License Key</label>
+    <input id="license-key" type="text" placeholder="eyJ..." style="max-width:600px;font-size:11px">
+    <div id="license-status" style="margin-top:4px;font-size:11px;color:#888"></div>
+  </div>
+</div>
+
 <h2>Dashboard</h2>
 <div class="section">
   <div class="field"><label>Title</label><input id="title" type="text" value="Ops Dashboard"></div>
@@ -109,6 +118,7 @@ async function save() {
     ram_threshold:parseInt(document.getElementById('ram-t').value,10)||80,
     gpu_temp_threshold:parseInt(document.getElementById('gpu-t').value,10)||80,
     offline_notify:document.getElementById('offline-notify').checked,
+    license_key:document.getElementById('license-key').value.trim(),
   };
   try {
     var r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -144,6 +154,11 @@ async function save() {
       document.getElementById('offline-notify').checked=cfg.alerts.offline_notify!==false;
     }
     (cfg.services||[]).forEach(function(s){addSvc(s.name,s.port,s.start_command);});
+    if(cfg.tier && cfg.tier !== 'none'){
+      var ls=document.getElementById('license-status');
+      ls.style.color='#00ff41';
+      ls.textContent='Active tier: '+cfg.tier.charAt(0).toUpperCase()+cfg.tier.slice(1);
+    }
   } catch(_){}
 })();
 </script>
