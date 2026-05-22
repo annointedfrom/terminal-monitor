@@ -1,6 +1,6 @@
-# Tiered Licensing Implementation Plan
+﻿# Tiered Licensing Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Gate Terminal Monitor features behind Base / Mid / Diamond tiers using offline RS256-signed JWT license keys verified at startup, enforced by HTTP middleware and per-route FastAPI dependencies.
 
@@ -36,7 +36,7 @@
 - Create: `termmon/licensing.py`
 - Create: `tests/test_licensing.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/test_licensing.py`:
 
@@ -137,7 +137,7 @@ def test_tier_ordering():
     assert Tier.BASE < Tier.DIAMOND
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 cd C:\Users\hms16\Me\MyWords\Sandbox\projects\terminal-monitor
@@ -146,7 +146,7 @@ cd C:\Users\hms16\Me\MyWords\Sandbox\projects\terminal-monitor
 
 Expected: `ModuleNotFoundError: No module named 'termmon.licensing'`
 
-- [ ] **Step 3: Add PyJWT to requirements.txt**
+- [x] **Step 3: Add PyJWT to requirements.txt**
 
 Add this line after `pyyaml>=6.0.1`:
 
@@ -160,7 +160,7 @@ Then install:
 .venv\Scripts\pip install "PyJWT[cryptography]>=2.8.0"
 ```
 
-- [ ] **Step 4: Create `termmon/licensing.py`**
+- [x] **Step 4: Create `termmon/licensing.py`**
 
 ```python
 from __future__ import annotations
@@ -223,7 +223,7 @@ def require_tier(minimum: Tier):
     return Depends(_check)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```powershell
 .venv\Scripts\pytest tests\test_licensing.py -v
@@ -231,7 +231,7 @@ def require_tier(minimum: Tier):
 
 Expected: all 9 tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add requirements.txt termmon/licensing.py tests/test_licensing.py
@@ -243,10 +243,10 @@ git commit -m "feat: add licensing module with RS256 JWT verification and tier e
 ## Task 2: Add `license_key` field to Settings
 
 **Files:**
-- Modify: `termmon/config.py` (line 36 — the `Settings` class)
+- Modify: `termmon/config.py` (line 36 â€” the `Settings` class)
 - Modify: `tests/test_config.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to the end of `tests/test_config.py`:
 
@@ -270,15 +270,15 @@ def test_license_key_loads_from_yaml(tmp_path):
     assert s.license_key == "eyJtest"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .venv\Scripts\pytest tests\test_config.py::test_license_key_defaults_to_empty -v
 ```
 
-Expected: `FAIL — Settings has no field 'license_key'`
+Expected: `FAIL â€” Settings has no field 'license_key'`
 
-- [ ] **Step 3: Add `license_key` to Settings in `termmon/config.py`**
+- [x] **Step 3: Add `license_key` to Settings in `termmon/config.py`**
 
 In the `Settings` class (currently line 36), add the new field:
 
@@ -291,16 +291,16 @@ class Settings(BaseModel):
     license_key: str = ""
 ```
 
-- [ ] **Step 4: Add `license_key` to `config.example.yaml`**
+- [x] **Step 4: Add `license_key` to `config.example.yaml`**
 
 Add at the end of `config.example.yaml`:
 
 ```yaml
-# License key issued after purchase — paste your JWT here
+# License key issued after purchase â€” paste your JWT here
 license_key: ""
 ```
 
-- [ ] **Step 5: Run all config tests to verify they pass**
+- [x] **Step 5: Run all config tests to verify they pass**
 
 ```powershell
 .venv\Scripts\pytest tests\test_config.py -v
@@ -308,7 +308,7 @@ license_key: ""
 
 Expected: all 6 tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add termmon/config.py termmon/../config.example.yaml tests/test_config.py
@@ -323,7 +323,7 @@ git commit -m "feat: add license_key field to Settings and config.example.yaml"
 - Modify: `termmon/main.py`
 - Modify: `tests/test_licensing.py`
 
-- [ ] **Step 1: Write the failing integration tests**
+- [x] **Step 1: Write the failing integration tests**
 
 Add to `tests/test_licensing.py` (below all existing tests):
 
@@ -395,15 +395,15 @@ def test_api_config_returns_tier_none_without_license(no_license_client):
     assert r.status_code == 403
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .venv\Scripts\pytest tests\test_licensing.py::test_api_scan_blocked_without_license -v
 ```
 
-Expected: FAIL — `/api/scan` returns 200 (no gate yet)
+Expected: FAIL â€” `/api/scan` returns 200 (no gate yet)
 
-- [ ] **Step 3: Add license check to lifespan and HTTP middleware in `termmon/main.py`**
+- [x] **Step 3: Add license check to lifespan and HTTP middleware in `termmon/main.py`**
 
 Add this import at the top of `termmon/main.py` (with the other imports):
 
@@ -445,7 +445,7 @@ async def license_gate(request: Request, call_next):
     return await call_next(request)
 ```
 
-- [ ] **Step 4: Update `/api/config` to include `tier` field**
+- [x] **Step 4: Update `/api/config` to include `tier` field**
 
 Replace the `get_config` function body (currently lines 154-164) with:
 
@@ -465,11 +465,11 @@ async def get_config():
     }
 ```
 
-- [ ] **Step 5: Add 403 detection and tier-based tab gating to `termmon/dashboard.html`**
+- [x] **Step 5: Add 403 detection and tier-based tab gating to `termmon/dashboard.html`**
 
 Read `termmon/dashboard.html` to find where `/api/config` is fetched (search for `fetch('/api/config')`). Then make two changes:
 
-**Change A — 403 redirect to /setup:** Immediately after the fetch, add:
+**Change A â€” 403 redirect to /setup:** Immediately after the fetch, add:
 
 ```javascript
 if (r.status === 403) {
@@ -478,7 +478,7 @@ if (r.status === 403) {
 }
 ```
 
-**Change B — Hide/show tabs based on tier:** After parsing the config JSON (the object that includes `tier`), add tab visibility logic. Find where tabs are rendered and add (adapt to match actual tab element IDs in the file):
+**Change B â€” Hide/show tabs based on tier:** After parsing the config JSON (the object that includes `tier`), add tab visibility logic. Find where tabs are rendered and add (adapt to match actual tab element IDs in the file):
 
 ```javascript
 var tier = cfg.tier || 'none';
@@ -493,7 +493,7 @@ if (tier === 'base' || tier === 'none') {
 
 Also add `data-tier="mid"` attribute to the AI Chat and Terminal tabs in the HTML, and `data-tier="diamond"` to Brain, Plugins, and Model tabs. (Read the dashboard.html file to find the exact tab elements before editing.)
 
-- [ ] **Step 6: Run integration tests to verify they pass**
+- [x] **Step 6: Run integration tests to verify they pass**
 
 ```powershell
 .venv\Scripts\pytest tests\test_licensing.py -v
@@ -501,17 +501,17 @@ Also add `data-tier="mid"` attribute to the AI Chat and Terminal tabs in the HTM
 
 Expected: all 15 tests PASS
 
-- [ ] **Step 6: Run full test suite to confirm no regressions**
+- [x] **Step 6: Run full test suite to confirm no regressions**
 
 ```powershell
 .venv\Scripts\pytest -v
 ```
 
-Expected: all tests PASS (existing tests will need the config fixture to include a license_key — they already use `tmp_path` to control the config path so they'll get `license_key: ""` → `app.state.license = None`. But tests that call API routes through TestClient will now get 403. Check test_api.py and fix any failures by adding a valid license fixture.)
+Expected: all tests PASS (existing tests will need the config fixture to include a license_key â€” they already use `tmp_path` to control the config path so they'll get `license_key: ""` â†’ `app.state.license = None`. But tests that call API routes through TestClient will now get 403. Check test_api.py and fix any failures by adding a valid license fixture.)
 
 If any existing tests in `tests/test_api.py` fail because routes now return 403, add a `base_license_client` fixture there following the same pattern as in test_licensing.py.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add termmon/main.py tests/test_licensing.py
@@ -526,7 +526,7 @@ git commit -m "feat: add startup license check, HTTP middleware gate, and tier i
 - Modify: `termmon/main.py`
 - Modify: `tests/test_licensing.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `tests/test_licensing.py`:
 
@@ -573,7 +573,7 @@ def test_chat_allowed_for_mid_license(mid_license_client, respx_mock):
         return_value=respx_mock.options(return_value=None)
     )
     # Just confirm the request reaches the handler (not blocked by tier gate)
-    # It may fail with 503 (no Ollama) — that's fine, 403 would be wrong
+    # It may fail with 503 (no Ollama) â€” that's fine, 403 would be wrong
     r = mid_license_client.post("/api/chat", json={"message": "hi", "model": "llama3.2:3b"})
     assert r.status_code != 403
 
@@ -588,15 +588,15 @@ def test_brain_sync_allowed_for_diamond_license(diamond_license_client):
     assert r.status_code != 403
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .venv\Scripts\pytest tests\test_licensing.py::test_chat_blocked_for_base_license tests\test_licensing.py::test_brain_sync_blocked_for_mid_license -v
 ```
 
-Expected: FAIL — `/api/chat` and `/api/brain/sync` return wrong status codes (no tier guard yet)
+Expected: FAIL â€” `/api/chat` and `/api/brain/sync` return wrong status codes (no tier guard yet)
 
-- [ ] **Step 3: Apply `require_tier` to `/api/chat` in `termmon/main.py`**
+- [x] **Step 3: Apply `require_tier` to `/api/chat` in `termmon/main.py`**
 
 Add this import at the top of `termmon/main.py` (with the other termmon imports):
 
@@ -611,7 +611,7 @@ Replace the `/api/chat` function signature (currently line 286):
 async def chat_with_ai(req: ChatRequest, _: LicenseInfo = require_tier(Tier.MID)):
 ```
 
-- [ ] **Step 4: Apply tier check to `/ws/terminal` in `termmon/main.py`**
+- [x] **Step 4: Apply tier check to `/ws/terminal` in `termmon/main.py`**
 
 Replace the `/ws/terminal` handler opening (currently lines 362-364) with:
 
@@ -627,7 +627,7 @@ async def terminal_ws(websocket: WebSocket):
 
 Remove the existing `await websocket.accept()` that was on the original line 365 (it is now in the tier check block).
 
-- [ ] **Step 5: Apply `require_tier` to `/api/brain/sync` in `termmon/main.py`**
+- [x] **Step 5: Apply `require_tier` to `/api/brain/sync` in `termmon/main.py`**
 
 Replace the `/api/brain/sync` function signature (currently line 167):
 
@@ -636,7 +636,7 @@ Replace the `/api/brain/sync` function signature (currently line 167):
 async def brain_sync(_: LicenseInfo = require_tier(Tier.DIAMOND)):
 ```
 
-- [ ] **Step 6: Run tier guard tests to verify they pass**
+- [x] **Step 6: Run tier guard tests to verify they pass**
 
 ```powershell
 .venv\Scripts\pytest tests\test_licensing.py -v
@@ -644,7 +644,7 @@ async def brain_sync(_: LicenseInfo = require_tier(Tier.DIAMOND)):
 
 Expected: all tests PASS
 
-- [ ] **Step 7: Run full suite to confirm no regressions**
+- [x] **Step 7: Run full suite to confirm no regressions**
 
 ```powershell
 .venv\Scripts\pytest -v
@@ -652,7 +652,7 @@ Expected: all tests PASS
 
 Expected: all tests PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add termmon/main.py tests/test_licensing.py
@@ -668,7 +668,7 @@ git commit -m "feat: apply MID tier guard to /api/chat and /ws/terminal, DIAMOND
 - Modify: `termmon/setup.html`
 - Modify: `tests/test_setup.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/test_setup.py`:
 
@@ -715,15 +715,15 @@ def test_setup_post_updates_app_state_license(tmp_path, monkeypatch):
     cfg_mod._settings = None
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```powershell
 .venv\Scripts\pytest tests\test_setup.py::test_setup_post_updates_app_state_license -v
 ```
 
-Expected: FAIL — `SetupRequest` has no `license_key` field
+Expected: FAIL â€” `SetupRequest` has no `license_key` field
 
-- [ ] **Step 3: Update `SetupRequest` and `setup_post` in `termmon/main.py`**
+- [x] **Step 3: Update `SetupRequest` and `setup_post` in `termmon/main.py`**
 
 Add `license_key` to the `SetupRequest` model (currently line 273):
 
@@ -775,7 +775,7 @@ async def setup_post(req: SetupRequest, request: Request):
     return {"saved": True}
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```powershell
 .venv\Scripts\pytest tests\test_setup.py -v
@@ -783,7 +783,7 @@ async def setup_post(req: SetupRequest, request: Request):
 
 Expected: all 4 tests PASS
 
-- [ ] **Step 5: Add the License Key field to `termmon/setup.html`**
+- [x] **Step 5: Add the License Key field to `termmon/setup.html`**
 
 Read `termmon/setup.html` to understand the current structure, then add the License Key section. Insert the following block immediately after `<h1>&gt; TERMINAL MONITOR SETUP</h1>` (line 34) and before `<h2>Dashboard</h2>`:
 
@@ -814,7 +814,7 @@ if(cfg.tier && cfg.tier !== 'none'){
 }
 ```
 
-- [ ] **Step 6: Run the full test suite**
+- [x] **Step 6: Run the full test suite**
 
 ```powershell
 .venv\Scripts\pytest -v
@@ -822,7 +822,7 @@ if(cfg.tier && cfg.tier !== 'none'){
 
 Expected: all tests PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add termmon/main.py termmon/setup.html tests/test_setup.py
@@ -837,7 +837,7 @@ git commit -m "feat: add license_key to setup wizard and SetupRequest; update ap
 - Create: `termmon-keygen.py`
 - Create: `tests/test_keygen.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/test_keygen.py`:
 
@@ -894,7 +894,7 @@ def test_generate_keypair_does_not_overwrite_existing(tmp_path):
     assert (tmp_path / "private_key.pem").stat().st_mtime == original_mtime
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .venv\Scripts\pytest tests\test_keygen.py -v
@@ -902,7 +902,7 @@ def test_generate_keypair_does_not_overwrite_existing(tmp_path):
 
 Expected: `FileNotFoundError` or `ModuleNotFoundError` (termmon-keygen.py doesn't exist)
 
-- [ ] **Step 3: Create `termmon-keygen.py`**
+- [x] **Step 3: Create `termmon-keygen.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -926,7 +926,7 @@ def generate_keypair(key_dir: pathlib.Path) -> str:
     public_path = key_dir / "public_key.pem"
 
     if private_path.exists():
-        print(f"[skip] {private_path} already exists — not overwriting.", file=sys.stderr)
+        print(f"[skip] {private_path} already exists â€” not overwriting.", file=sys.stderr)
         return public_path.read_text()
 
     key_dir.mkdir(parents=True, exist_ok=True)
@@ -997,7 +997,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```powershell
 .venv\Scripts\pytest tests\test_keygen.py -v
@@ -1005,7 +1005,7 @@ if __name__ == "__main__":
 
 Expected: all 4 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add termmon-keygen.py tests/test_keygen.py
@@ -1020,7 +1020,7 @@ git commit -m "feat: add termmon-keygen.py developer tool for RSA keypair genera
 - Modify: `.dockerignore`
 - Modify: `termmon/licensing.py`
 
-- [ ] **Step 1: Add `termmon-keygen.py` to `.dockerignore`**
+- [x] **Step 1: Add `termmon-keygen.py` to `.dockerignore`**
 
 Add the following line to `.dockerignore` under the `# Development-only files` section:
 
@@ -1028,9 +1028,9 @@ Add the following line to `.dockerignore` under the `# Development-only files` s
 termmon-keygen.py
 ```
 
-- [ ] **Step 2: Generate your production RSA keypair**
+- [x] **Step 2: Generate your production RSA keypair**
 
-Run this once. Keep the output safe — the private key file should never leave your machine.
+Run this once. Keep the output safe â€” the private key file should never leave your machine.
 
 ```powershell
 python termmon-keygen.py --generate-keypair
@@ -1038,7 +1038,7 @@ python termmon-keygen.py --generate-keypair
 
 This writes `~/.termmon/private_key.pem` and `~/.termmon/public_key.pem`, and prints the public key to stdout.
 
-- [ ] **Step 3: Embed the public key in `termmon/licensing.py`**
+- [x] **Step 3: Embed the public key in `termmon/licensing.py`**
 
 Copy the entire `-----BEGIN PUBLIC KEY-----` ... `-----END PUBLIC KEY-----` block printed in Step 2.
 
@@ -1050,7 +1050,7 @@ PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 -----END PUBLIC KEY-----"""
 ```
 
-- [ ] **Step 4: Issue your personal Diamond license key**
+- [x] **Step 4: Issue your personal Diamond license key**
 
 ```powershell
 python termmon-keygen.py --tier diamond --email avaquera@pnw.edu
@@ -1058,15 +1058,15 @@ python termmon-keygen.py --tier diamond --email avaquera@pnw.edu
 
 Copy the JWT output.
 
-- [ ] **Step 5: Add your license key to personal `config.yaml`**
+- [x] **Step 5: Add your license key to personal `config.yaml`**
 
-Open `config.yaml` (in the project root — it is gitignored, so this stays local) and add:
+Open `config.yaml` (in the project root â€” it is gitignored, so this stays local) and add:
 
 ```yaml
 license_key: "eyJ..."   # paste your Diamond JWT here
 ```
 
-- [ ] **Step 6: Run the full test suite**
+- [x] **Step 6: Run the full test suite**
 
 ```powershell
 .venv\Scripts\pytest -v
@@ -1074,7 +1074,7 @@ license_key: "eyJ..."   # paste your Diamond JWT here
 
 Expected: all tests PASS. The tests patch `PUBLIC_KEY` with their own test key, so they are not affected by the production key you embedded.
 
-- [ ] **Step 7: Start the app and verify the license resolves**
+- [x] **Step 7: Start the app and verify the license resolves**
 
 ```powershell
 .venv\Scripts\python -m uvicorn termmon.main:app --host 127.0.0.1 --port 8084
@@ -1082,7 +1082,7 @@ Expected: all tests PASS. The tests patch `PUBLIC_KEY` with their own test key, 
 
 Open `http://localhost:8084/api/config` in a browser. Expected response includes `"tier": "diamond"`.
 
-- [ ] **Step 8: Add `*.pem` to `.gitignore`**
+- [x] **Step 8: Add `*.pem` to `.gitignore`**
 
 Open `.gitignore` in the project root and add under the secrets section:
 
@@ -1092,14 +1092,14 @@ Open `.gitignore` in the project root and add under the secrets section:
 
 This ensures the private key is never accidentally committed even if someone runs `--generate-keypair` inside the project folder.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add .dockerignore termmon/licensing.py .gitignore
 git commit -m "feat: embed production RSA public key, add termmon-keygen.py to dockerignore, guard *.pem in gitignore"
 ```
 
-- [ ] **Step 10: Push to both repos**
+- [x] **Step 10: Push to both repos**
 
 ```powershell
 git push origin master

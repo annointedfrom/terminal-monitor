@@ -1,6 +1,6 @@
-# Plugin Architecture Implementation Plan
+﻿# Plugin Architecture Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a plugin system to Terminal Monitor that lets buyers install purchased plugins (each validated via a per-plugin RS256 JWT key) which are discovered at startup, loaded via importlib, and registered as live API + dashboard tab endpoints.
 
@@ -28,10 +28,10 @@
 ## Context: Codebase patterns to follow
 
 - `termmon/licensing.py` holds `PUBLIC_KEY` (hardcoded PEM) and `verify_license()` using `jwt.decode(..., algorithms=["RS256"], options={"verify_exp": False})`. `verify_plugin_key` follows the same pattern.
-- Tests use `patch.object(lic_mod, "PUBLIC_KEY", public_pem)` to inject a test keypair — follow this same pattern.
+- Tests use `patch.object(lic_mod, "PUBLIC_KEY", public_pem)` to inject a test keypair â€” follow this same pattern.
 - `test_keygen.py` uses `importlib.util.spec_from_file_location` to load `termmon-keygen.py` since it has a hyphen in the filename.
 - `termmon/main.py` lifespan currently: `app.state.license = verify_license(settings.license_key)` then `app.state.update_cache = None`. Add plugin loading after these two lines.
-- `main.py` imports: `from fastapi.responses import FileResponse, JSONResponse, RedirectResponse` — add `HTMLResponse` to this import.
+- `main.py` imports: `from fastapi.responses import FileResponse, JSONResponse, RedirectResponse` â€” add `HTMLResponse` to this import.
 
 ---
 
@@ -41,7 +41,7 @@
 - Modify: `termmon/licensing.py` (add after `verify_license`, before `require_tier`)
 - Test: `tests/test_licensing.py` (append to existing file)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to the bottom of `tests/test_licensing.py`:
 
@@ -88,14 +88,14 @@ def test_verify_plugin_key_main_license_token_rejected(rsa_keypair):
         assert lic_mod.verify_plugin_key(token, "docker") is False
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_licensing.py -k "plugin_key" -v
 ```
-Expected: FAIL — `AttributeError: module 'termmon.licensing' has no attribute 'verify_plugin_key'`
+Expected: FAIL â€” `AttributeError: module 'termmon.licensing' has no attribute 'verify_plugin_key'`
 
-- [ ] **Step 3: Add `verify_plugin_key` to `termmon/licensing.py`**
+- [x] **Step 3: Add `verify_plugin_key` to `termmon/licensing.py`**
 
 Insert after the closing `return None` of `verify_license` (after line 65, before `def require_tier`):
 
@@ -115,21 +115,21 @@ def verify_plugin_key(token: str, plugin_name: str) -> bool:
         return False
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```
 pytest tests/test_licensing.py -k "plugin_key" -v
 ```
 Expected: 5 PASSED
 
-- [ ] **Step 5: Run full test suite to check nothing is broken**
+- [x] **Step 5: Run full test suite to check nothing is broken**
 
 ```
 pytest --tb=short -q
 ```
 Expected: all previously passing tests still pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add termmon/licensing.py tests/test_licensing.py
@@ -144,7 +144,7 @@ git commit -m "feat: add verify_plugin_key to licensing.py"
 - Create: `termmon/plugin_loader.py`
 - Create: `tests/test_plugin_loader.py`
 
-- [ ] **Step 1: Write failing tests in `tests/test_plugin_loader.py`**
+- [x] **Step 1: Write failing tests in `tests/test_plugin_loader.py`**
 
 Create `tests/test_plugin_loader.py` with this full content:
 
@@ -213,7 +213,7 @@ def _write_plugin(
         (plugin_dir / "tab.html").write_text("<div>Hello from plugin</div>")
 
 
-# ─── Loader discovery tests ────────────────────────────────────────────────────
+# â”€â”€â”€ Loader discovery tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_load_plugins_returns_empty_when_dir_missing(tmp_path):
     from termmon.plugin_loader import load_plugins
@@ -290,7 +290,7 @@ def test_load_plugins_loads_valid_plugin(tmp_path, rsa_keypair):
     assert result[0].meta.name == "myplugin"
 
 
-# ─── LoadedPlugin method tests ────────────────────────────────────────────────
+# â”€â”€â”€ LoadedPlugin method tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_loaded_plugin_scan_returns_data(tmp_path, rsa_keypair):
     from termmon.plugin_loader import load_plugins
@@ -348,7 +348,7 @@ def test_loaded_plugin_has_router_true_with_router(tmp_path, rsa_keypair):
     assert plugins[0].has_router() is True
 
 
-# ─── _resolve_plugins_dir tests ───────────────────────────────────────────────
+# â”€â”€â”€ _resolve_plugins_dir tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_resolve_plugins_dir_default():
     from termmon.plugin_loader import _resolve_plugins_dir
@@ -362,14 +362,14 @@ def test_resolve_plugins_dir_custom(tmp_path):
     assert _resolve_plugins_dir(str(tmp_path)) == tmp_path
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_plugin_loader.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'termmon.plugin_loader'`
+Expected: FAIL â€” `ModuleNotFoundError: No module named 'termmon.plugin_loader'`
 
-- [ ] **Step 3: Create `termmon/plugin_loader.py`**
+- [x] **Step 3: Create `termmon/plugin_loader.py`**
 
 Create `termmon/plugin_loader.py` with this full content:
 
@@ -444,16 +444,16 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
         key_path = entry / "plugin.key"
 
         if not manifest_path.exists() or not init_path.exists():
-            logger.warning("Plugin %s: missing manifest.json or __init__.py — skipped", plugin_name)
+            logger.warning("Plugin %s: missing manifest.json or __init__.py â€” skipped", plugin_name)
             continue
 
         if not key_path.exists():
-            logger.warning("Plugin %s: missing plugin.key — skipped", plugin_name)
+            logger.warning("Plugin %s: missing plugin.key â€” skipped", plugin_name)
             continue
 
         token = key_path.read_text(encoding="utf-8").strip()
         if not verify_plugin_key(token, plugin_name):
-            logger.warning("Plugin %s: invalid or mismatched plugin.key — skipped", plugin_name)
+            logger.warning("Plugin %s: invalid or mismatched plugin.key â€” skipped", plugin_name)
             continue
 
         try:
@@ -468,7 +468,7 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
                 author=manifest_data["author"],
             )
         except (json.JSONDecodeError, KeyError) as exc:
-            logger.warning("Plugin %s: manifest parse error: %s — skipped", plugin_name, exc)
+            logger.warning("Plugin %s: manifest parse error: %s â€” skipped", plugin_name, exc)
             continue
 
         try:
@@ -478,11 +478,11 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         except Exception as exc:
-            logger.warning("Plugin %s: import error: %s — skipped", plugin_name, exc)
+            logger.warning("Plugin %s: import error: %s â€” skipped", plugin_name, exc)
             continue
 
         if not hasattr(module, "scan"):
-            logger.warning("Plugin %s: no scan() function — skipped", plugin_name)
+            logger.warning("Plugin %s: no scan() function â€” skipped", plugin_name)
             continue
 
         results.append(LoadedPlugin(meta=meta, module=module, plugin_dir=entry))
@@ -491,21 +491,21 @@ def load_plugins(plugins_dir: Path) -> list[LoadedPlugin]:
     return results
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```
 pytest tests/test_plugin_loader.py -v
 ```
 Expected: 17 PASSED
 
-- [ ] **Step 5: Run full test suite**
+- [x] **Step 5: Run full test suite**
 
 ```
 pytest --tb=short -q
 ```
 Expected: all previously passing tests still pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add termmon/plugin_loader.py tests/test_plugin_loader.py
@@ -519,9 +519,9 @@ git commit -m "feat: add plugin_loader module with discovery and validation"
 **Files:**
 - Modify: `termmon/config.py` (add one field to `Settings`)
 
-This is a small additive change. No new tests needed — the existing `tests/test_config.py` will confirm the field has a working default.
+This is a small additive change. No new tests needed â€” the existing `tests/test_config.py` will confirm the field has a working default.
 
-- [ ] **Step 1: Add the field to `Settings`**
+- [x] **Step 1: Add the field to `Settings`**
 
 In `termmon/config.py`, find the `Settings` class (currently ends at `license_key: str = ""`).
 Add `plugins_dir` as the last field:
@@ -536,14 +536,14 @@ class Settings(BaseModel):
     plugins_dir: Optional[str] = None
 ```
 
-- [ ] **Step 2: Verify existing tests still pass**
+- [x] **Step 2: Verify existing tests still pass**
 
 ```
 pytest tests/test_config.py -v
 ```
 Expected: all PASSED
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```
 git add termmon/config.py
@@ -558,12 +558,12 @@ git commit -m "feat: add plugins_dir config field"
 - Modify: `termmon/main.py`
 - Modify: `tests/test_plugin_loader.py` (append API endpoint tests)
 
-- [ ] **Step 1: Write failing API tests**
+- [x] **Step 1: Write failing API tests**
 
 Append to `tests/test_plugin_loader.py` after the last existing test:
 
 ```python
-# ─── API endpoint tests ────────────────────────────────────────────────────────
+# â”€â”€â”€ API endpoint tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # These tests use a minimal FastAPI app (not termmon.main.app) to avoid
 # polluting the main app's route table across test runs.
 
@@ -661,19 +661,19 @@ def test_plugin_tab_returns_404_when_has_tab_false(tmp_path, rsa_keypair):
     with patch.object(lic_mod, "PUBLIC_KEY", public_pem):
         plugins = load_plugins(tmp_path)
     client = _endpoint_client(plugins[0])
-    # No /tab route registered when has_tab=False → FastAPI returns 404
+    # No /tab route registered when has_tab=False â†’ FastAPI returns 404
     r = client.get("/api/plugins/notabplugin/tab")
     assert r.status_code == 404
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_plugin_loader.py -k "endpoint or metadata or tab or data_return" -v
 ```
-Expected: FAIL — `ImportError: cannot import name '_register_plugin_endpoints' from 'termmon.main'`
+Expected: FAIL â€” `ImportError: cannot import name '_register_plugin_endpoints' from 'termmon.main'`
 
-- [ ] **Step 3: Add imports to `termmon/main.py`**
+- [x] **Step 3: Add imports to `termmon/main.py`**
 
 Find this line in `termmon/main.py`:
 ```python
@@ -693,7 +693,7 @@ Add after it:
 from termmon.plugin_loader import load_plugins, _resolve_plugins_dir, LoadedPlugin
 ```
 
-- [ ] **Step 4: Add `_register_plugin_endpoints` helper to `termmon/main.py`**
+- [x] **Step 4: Add `_register_plugin_endpoints` helper to `termmon/main.py`**
 
 Add this function before the `lifespan` function (before `@asynccontextmanager`):
 
@@ -723,7 +723,7 @@ def _register_plugin_endpoints(app: FastAPI, plugin: LoadedPlugin) -> None:
         app.include_router(plugin.get_router(), prefix=f"/api/plugins/{name}")
 ```
 
-- [ ] **Step 5: Update `lifespan` to load plugins**
+- [x] **Step 5: Update `lifespan` to load plugins**
 
 Find this block in `termmon/main.py`:
 ```python
@@ -759,7 +759,7 @@ async def lifespan(app: FastAPI):
         t.cancel()
 ```
 
-- [ ] **Step 6: Add `GET /api/plugins` route to `termmon/main.py`**
+- [x] **Step 6: Add `GET /api/plugins` route to `termmon/main.py`**
 
 Find this route in `termmon/main.py`:
 ```python
@@ -787,21 +787,21 @@ async def list_plugins(request: Request):
 
 ```
 
-- [ ] **Step 7: Run the new API tests**
+- [x] **Step 7: Run the new API tests**
 
 ```
 pytest tests/test_plugin_loader.py -k "endpoint or metadata or returns_html or returns_scan or returns_500 or returns_404" -v
 ```
 Expected: 5 PASSED
 
-- [ ] **Step 8: Run full test suite**
+- [x] **Step 8: Run full test suite**
 
 ```
 pytest --tb=short -q
 ```
 Expected: all previously passing tests still pass
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```
 git add termmon/main.py tests/test_plugin_loader.py
@@ -815,9 +815,9 @@ git commit -m "feat: integrate plugin loader into main.py with API endpoints"
 **Files:**
 - Modify: `termmon/dashboard.html`
 
-No automated test — verify manually by running the app. The spec says plugin tabs appear after the 6 existing tabs and are lazy-loaded when first clicked.
+No automated test â€” verify manually by running the app. The spec says plugin tabs appear after the 6 existing tabs and are lazy-loaded when first clicked.
 
-- [ ] **Step 1: Add `_loadPlugins()` JS function**
+- [x] **Step 1: Add `_loadPlugins()` JS function**
 
 Find this line in `termmon/dashboard.html`:
 ```javascript
@@ -855,7 +855,7 @@ async function _loadPlugins() {
 
 ```
 
-- [ ] **Step 2: Modify `switchTab()` to handle plugin tabs**
+- [x] **Step 2: Modify `switchTab()` to handle plugin tabs**
 
 Find this exact block in `termmon/dashboard.html`:
 ```javascript
@@ -905,7 +905,7 @@ function switchTab(name) {
 }
 ```
 
-- [ ] **Step 3: Call `_loadPlugins()` at page load**
+- [x] **Step 3: Call `_loadPlugins()` at page load**
 
 Find this line in `termmon/dashboard.html` (near the bottom of the script):
 ```javascript
@@ -922,15 +922,15 @@ Replace with:
     });
 ```
 
-- [ ] **Step 4: Verify the app still starts and renders correctly**
+- [x] **Step 4: Verify the app still starts and renders correctly**
 
 ```
 .\.venv\Scripts\uvicorn termmon.main:app --port 8084
 ```
 
-Open http://localhost:8084/dashboard — confirm the 6 original tabs all appear and no JS errors in console. (No plugins will show unless a valid plugin folder exists.)
+Open http://localhost:8084/dashboard â€” confirm the 6 original tabs all appear and no JS errors in console. (No plugins will show unless a valid plugin folder exists.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```
 git add termmon/dashboard.html
@@ -945,7 +945,7 @@ git commit -m "feat: add plugin tab injection to dashboard"
 - Modify: `termmon-keygen.py`
 - Modify: `tests/test_keygen.py` (append tests)
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Append to `tests/test_keygen.py`:
 
@@ -971,14 +971,14 @@ def test_issue_plugin_key_different_plugins(tmp_path):
         assert "tier" not in payload
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_keygen.py -k "plugin_key" -v
 ```
-Expected: FAIL — `AttributeError: module 'termmon_keygen' has no attribute 'issue_plugin_key'`
+Expected: FAIL â€” `AttributeError: module 'termmon_keygen' has no attribute 'issue_plugin_key'`
 
-- [ ] **Step 3: Add `issue_plugin_key` and `--plugin` flag to `termmon-keygen.py`**
+- [x] **Step 3: Add `issue_plugin_key` and `--plugin` flag to `termmon-keygen.py`**
 
 Find this function in `termmon-keygen.py`:
 ```python
@@ -1041,21 +1041,21 @@ Insert a new block BEFORE it (plugin check comes first since it ignores `--tier`
     if args.tier and args.email:
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```
 pytest tests/test_keygen.py -v
 ```
 Expected: all PASSED (including the 2 new plugin tests)
 
-- [ ] **Step 5: Run full test suite**
+- [x] **Step 5: Run full test suite**
 
 ```
 pytest --tb=short -q
 ```
 Expected: all tests pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add termmon-keygen.py tests/test_keygen.py
@@ -1068,7 +1068,7 @@ git commit -m "feat: add --plugin flag to termmon-keygen.py"
 
 After all 6 tasks complete:
 
-1. `pytest` passes all tests (122 existing + ~27 new ≈ 149 total)
+1. `pytest` passes all tests (122 existing + ~27 new â‰ˆ 149 total)
 2. `GET /api/plugins` returns `[]` when no `plugins/` directory exists
 3. A valid plugin folder with correct `plugin.key` and `scan()` function is loaded and accessible at `GET /api/plugins/<name>/data`
 4. An invalid or missing key causes the plugin to be skipped with a logged warning (app still starts)

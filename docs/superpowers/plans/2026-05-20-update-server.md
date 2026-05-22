@@ -1,6 +1,6 @@
-# Update Server Implementation Plan
+﻿# Update Server Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add passive update discovery (GitHub Pages manifests) and one-click Ollama model pull (MID+ tier) to the Terminal Monitor dashboard.
 
@@ -25,8 +25,8 @@ GitHub Pages (`gh-pages` branch on `annointedfrom/terminal-monitor`):
 
 | File | Action |
 |---|---|
-| `releases.json` | Create — app version manifest |
-| `models-manifest.json` | Create — model version manifest |
+| `releases.json` | Create â€” app version manifest |
+| `models-manifest.json` | Create â€” model version manifest |
 
 ---
 
@@ -35,7 +35,7 @@ GitHub Pages (`gh-pages` branch on `annointedfrom/terminal-monitor`):
 **Files:**
 - Create: `termmon/version.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_updater.py  (create new file)
@@ -49,25 +49,25 @@ def test_version_is_string():
     assert all(p.isdigit() for p in parts)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_updater.py::test_version_is_string -v`
 
 Expected: `ModuleNotFoundError: No module named 'termmon.version'`
 
-- [ ] **Step 3: Create `termmon/version.py`**
+- [x] **Step 3: Create `termmon/version.py`**
 
 ```python
 __version__ = "1.0.0"
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_updater.py::test_version_is_string -v`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add termmon/version.py tests/test_updater.py
@@ -82,7 +82,7 @@ git commit -m "feat: add version constant"
 - Create: `termmon/updater.py`
 - Modify: `tests/test_updater.py`
 
-- [ ] **Step 1: Write the failing unit tests**
+- [x] **Step 1: Write the failing unit tests**
 
 Append to `tests/test_updater.py`:
 
@@ -92,7 +92,7 @@ import respx
 from termmon.updater import _version_gt, _tier_available, check_updates
 from termmon.licensing import LicenseInfo, Tier
 
-# ── Version comparison ────────────────────────────────────────────────────────
+# â”€â”€ Version comparison â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_version_gt_newer():
     assert _version_gt("1.1.0", "1.0.0") is True
@@ -110,7 +110,7 @@ def test_version_gt_malformed():
     assert _version_gt("bad", "1.0.0") is False
 
 
-# ── Tier filter ───────────────────────────────────────────────────────────────
+# â”€â”€ Tier filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_tier_available_mid_for_mid_model():
     info = LicenseInfo(tier=Tier.MID, email="t@t.com", issued_at="2026-05-20")
@@ -131,7 +131,7 @@ def test_tier_available_diamond_for_mid_model():
     assert _tier_available(info, "mid") is True
 
 
-# ── Manifest fetching (respx mocks) ──────────────────────────────────────────
+# â”€â”€ Manifest fetching (respx mocks) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _APP_URL = "https://annointedfrom.github.io/terminal-monitor/releases.json"
 _MODELS_URL = "https://annointedfrom.github.io/terminal-monitor/models-manifest.json"
@@ -211,13 +211,13 @@ async def test_check_updates_malformed_json():
     assert result["models"] == []
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_updater.py -v`
 
 Expected: 15 collected, all fail with `ImportError` (module doesn't exist yet)
 
-- [ ] **Step 3: Create `termmon/updater.py`**
+- [x] **Step 3: Create `termmon/updater.py`**
 
 ```python
 from __future__ import annotations
@@ -299,17 +299,17 @@ async def ollama_pull(tag: str) -> None:
         r.raise_for_status()
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_updater.py -v`
 
 Expected: 15 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add termmon/updater.py tests/test_updater.py
-git commit -m "feat: add updater module — manifest fetch, version compare, Ollama pull"
+git commit -m "feat: add updater module â€” manifest fetch, version compare, Ollama pull"
 ```
 
 ---
@@ -320,12 +320,12 @@ git commit -m "feat: add updater module — manifest fetch, version compare, Oll
 - Modify: `termmon/main.py`
 - Modify: `tests/test_licensing.py`
 
-- [ ] **Step 1: Write the failing endpoint tests**
+- [x] **Step 1: Write the failing endpoint tests**
 
-Append to the bottom of `tests/test_licensing.py` (the file already has `mid_license_client` and `base_license_client` fixtures — use those):
+Append to the bottom of `tests/test_licensing.py` (the file already has `mid_license_client` and `base_license_client` fixtures â€” use those):
 
 ```python
-# ── Update server endpoint tests ──────────────────────────────────────────────
+# â”€â”€ Update server endpoint tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_update_check_accessible_with_base_license(base_license_client):
     r = base_license_client.get("/api/update/check")
@@ -347,33 +347,33 @@ def test_model_pull_blocked_for_base_license(base_license_client):
 
 
 def test_model_pull_reaches_handler_for_mid_license(mid_license_client):
-    # Ollama not running in CI — expects 503 (no Ollama), NOT 403 (license block)
+    # Ollama not running in CI â€” expects 503 (no Ollama), NOT 403 (license block)
     r = mid_license_client.post("/api/update/model/pull", json={"tag": "ops-brain:v2"})
     assert r.status_code != 403
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_licensing.py::test_update_check_accessible_with_base_license tests/test_licensing.py::test_update_check_blocked_without_license tests/test_licensing.py::test_model_pull_blocked_for_base_license tests/test_licensing.py::test_model_pull_reaches_handler_for_mid_license -v`
 
-Expected: 4 failures — routes do not exist yet
+Expected: 4 failures â€” routes do not exist yet
 
-- [ ] **Step 3: Modify `termmon/main.py`**
+- [x] **Step 3: Modify `termmon/main.py`**
 
-**3a — Add import** (add after the existing `from termmon.licensing import ...` import):
+**3a â€” Add import** (add after the existing `from termmon.licensing import ...` import):
 
 ```python
 from termmon.updater import check_updates, ollama_pull
 ```
 
-**3b — Add `ModelPullRequest` Pydantic model** (add alongside the other `BaseModel` classes, e.g., after `ChatRequest`):
+**3b â€” Add `ModelPullRequest` Pydantic model** (add alongside the other `BaseModel` classes, e.g., after `ChatRequest`):
 
 ```python
 class ModelPullRequest(BaseModel):
     tag: str
 ```
 
-**3c — Initialize cache in lifespan** (add one line after `app.state.license = verify_license(...)` in the `lifespan` function):
+**3c â€” Initialize cache in lifespan** (add one line after `app.state.license = verify_license(...)` in the `lifespan` function):
 
 ```python
 app.state.update_cache = None
@@ -395,7 +395,7 @@ async def lifespan(app: FastAPI):
         t.cancel()
 ```
 
-**3d — Add the two new routes** (add after the existing `GET /api/config` route):
+**3d â€” Add the two new routes** (add after the existing `GET /api/config` route):
 
 ```python
 @app.get("/api/update/check")
@@ -416,7 +416,7 @@ async def model_pull(req: ModelPullRequest):
         return JSONResponse(status_code=503, content={"detail": "Ollama unavailable"})
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_licensing.py -v`
 
@@ -428,7 +428,7 @@ Run: `pytest tests/ -q`
 
 Expected: all pass
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add termmon/main.py tests/test_licensing.py
@@ -442,9 +442,9 @@ git commit -m "feat: add /api/update/check and /api/update/model/pull endpoints"
 **Files:**
 - Modify: `termmon/dashboard.html`
 
-No automated tests for this task — manual verification after the server is running.
+No automated tests for this task â€” manual verification after the server is running.
 
-- [ ] **Step 1: Add CSS for `#update-bar`**
+- [x] **Step 1: Add CSS for `#update-bar`**
 
 Find the existing `#error-bar` CSS rule (line ~20):
 
@@ -458,7 +458,7 @@ Insert a new rule immediately after it:
 #update-bar { display: none; background: #0a1a0a; border-bottom: 1px solid #1a4a1a; padding: 3px 12px; color: #2ecc71; font-size: 9px; flex-shrink: 0; align-items: center; gap: 12px; }
 ```
 
-- [ ] **Step 2: Add `#update-bar` div to the HTML**
+- [x] **Step 2: Add `#update-bar` div to the HTML**
 
 Find the existing `#error-bar` div (line ~149):
 
@@ -472,7 +472,7 @@ Insert a new div immediately after it:
 <div id="update-bar"></div>
 ```
 
-- [ ] **Step 3: Add `_checkUpdates()` and `pullModel()` JavaScript**
+- [x] **Step 3: Add `_checkUpdates()` and `pullModel()` JavaScript**
 
 Find the block that starts with `async function _loadConfig()` (line ~252). Insert the two new functions immediately before `_loadConfig`:
 
@@ -485,7 +485,7 @@ async function _checkUpdates() {
     var bar = document.getElementById('update-bar');
     var parts = [];
     if (data.app && data.app.has_update) {
-      parts.push('<span>App update: v' + data.app.latest + ' — ' + data.app.changelog +
+      parts.push('<span>App update: v' + data.app.latest + ' â€” ' + data.app.changelog +
         ' &nbsp;<a href="' + data.app.download_url + '" target="_blank" style="color:#27ae60;text-decoration:underline">Download</a></span>');
     }
     if (data.models) {
@@ -511,7 +511,7 @@ async function _checkUpdates() {
 async function pullModel(tag) {
   var btnId = 'pull-' + tag.replace(/[^a-z0-9]/gi, '-');
   var btn = document.getElementById(btnId);
-  if (btn) { btn.textContent = 'Pulling…'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Pullingâ€¦'; btn.disabled = true; }
   try {
     var r = await fetch('/api/update/model/pull', {
       method: 'POST',
@@ -530,9 +530,9 @@ async function pullModel(tag) {
 }
 ```
 
-- [ ] **Step 4: Call `_checkUpdates()` at page load**
+- [x] **Step 4: Call `_checkUpdates()` at page load**
 
-Find the bottom script block (lines ~1185–1192):
+Find the bottom script block (lines ~1185â€“1192):
 
 ```javascript
 _loadConfig();
@@ -559,7 +559,7 @@ setInterval(fetchResources, 5000);
 setInterval(tickUpdated, 1000);
 ```
 
-- [ ] **Step 5: Manual smoke test**
+- [x] **Step 5: Manual smoke test**
 
 Start the server:
 
@@ -572,7 +572,7 @@ Open `http://localhost:8084/dashboard` in a browser. Confirm:
 - `#update-bar` is hidden (manifests not live yet, so no update found)
 - No regressions to existing tabs/stats
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add termmon/dashboard.html
@@ -587,9 +587,9 @@ git commit -m "feat: add update banner and model pull button to dashboard"
 - Create: `releases.json` (on `gh-pages` branch of `annointedfrom/terminal-monitor`)
 - Create: `models-manifest.json` (on `gh-pages` branch)
 
-This task creates the static manifests that the update server fetches. These files live on a separate orphan branch — **do not add them to `master`**.
+This task creates the static manifests that the update server fetches. These files live on a separate orphan branch â€” **do not add them to `master`**.
 
-- [ ] **Step 1: Create the orphan `gh-pages` branch**
+- [x] **Step 1: Create the orphan `gh-pages` branch**
 
 Run from the project root:
 
@@ -600,7 +600,7 @@ git rm -rf .
 
 The working directory is now empty. You are on branch `gh-pages` with no commits.
 
-- [ ] **Step 2: Create `releases.json`**
+- [x] **Step 2: Create `releases.json`**
 
 ```json
 {
@@ -611,9 +611,9 @@ The working directory is now empty. You are on branch `gh-pages` with no commits
 }
 ```
 
-Note: `latest` is `"1.0.0"` — same as the installed version — so `has_update` will be `false` until a real new release is cut. This is intentional: the banner stays hidden until the developer bumps `latest` to `"1.1.0"`.
+Note: `latest` is `"1.0.0"` â€” same as the installed version â€” so `has_update` will be `false` until a real new release is cut. This is intentional: the banner stays hidden until the developer bumps `latest` to `"1.1.0"`.
 
-- [ ] **Step 3: Create `models-manifest.json`**
+- [x] **Step 3: Create `models-manifest.json`**
 
 ```json
 {
@@ -623,7 +623,7 @@ Note: `latest` is `"1.0.0"` — same as the installed version — so `has_update
 
 No models listed yet. Add an entry here when the first `ops-brain` model version is ready to ship.
 
-- [ ] **Step 4: Commit and push `gh-pages`**
+- [x] **Step 4: Commit and push `gh-pages`**
 
 ```bash
 git add releases.json models-manifest.json
@@ -631,9 +631,9 @@ git commit -m "feat: initial GitHub Pages update manifests"
 git push origin gh-pages
 ```
 
-- [ ] **Step 5: Enable GitHub Pages**
+- [x] **Step 5: Enable GitHub Pages**
 
-In the GitHub UI: `annointedfrom/terminal-monitor` → Settings → Pages → Source: `gh-pages` branch, `/ (root)`. Save.
+In the GitHub UI: `annointedfrom/terminal-monitor` â†’ Settings â†’ Pages â†’ Source: `gh-pages` branch, `/ (root)`. Save.
 
 After ~60 seconds, verify:
 
@@ -644,13 +644,13 @@ curl https://annointedfrom.github.io/terminal-monitor/models-manifest.json
 
 Both should return the JSON created above.
 
-- [ ] **Step 6: Return to master**
+- [x] **Step 6: Return to master**
 
 ```bash
 git checkout master
 ```
 
-- [ ] **Step 7: Push master to both remotes**
+- [x] **Step 7: Push master to both remotes**
 
 ```bash
 git push origin master
@@ -665,21 +665,21 @@ git push dev master
 
 | Spec requirement | Task |
 |---|---|
-| `termmon/version.py` — `__version__ = "1.0.0"` | Task 1 ✅ |
-| `termmon/updater.py` — `check_updates()`, session cache | Task 2 ✅ |
-| Manifest fetch timeout 3s, silent failure | Task 2 ✅ |
-| `app.state.update_cache` initialized in lifespan | Task 3 ✅ |
-| `GET /api/update/check` — lazy cache | Task 3 ✅ |
-| `POST /api/update/model/pull` — MID+ gate, Ollama proxy | Task 3 ✅ |
-| `models-manifest.json` `min_tier` filtering, `available` field | Task 2 ✅ |
-| 503 when Ollama unavailable | Task 3 ✅ |
-| 403 for BASE tier on model pull | Task 3 ✅ |
-| Dashboard banner with download link | Task 4 ✅ |
-| Model pull button with spinner / Done state | Task 4 ✅ |
-| BASE buyer sees greyed-out model (not available) | Task 4 ✅ |
-| `releases.json` + `models-manifest.json` on `gh-pages` | Task 5 ✅ |
-| `tests/test_updater.py` with respx mocks | Task 2 ✅ |
-| Silent on both manifest failures | Task 2 ✅ |
+| `termmon/version.py` â€” `__version__ = "1.0.0"` | Task 1 âœ… |
+| `termmon/updater.py` â€” `check_updates()`, session cache | Task 2 âœ… |
+| Manifest fetch timeout 3s, silent failure | Task 2 âœ… |
+| `app.state.update_cache` initialized in lifespan | Task 3 âœ… |
+| `GET /api/update/check` â€” lazy cache | Task 3 âœ… |
+| `POST /api/update/model/pull` â€” MID+ gate, Ollama proxy | Task 3 âœ… |
+| `models-manifest.json` `min_tier` filtering, `available` field | Task 2 âœ… |
+| 503 when Ollama unavailable | Task 3 âœ… |
+| 403 for BASE tier on model pull | Task 3 âœ… |
+| Dashboard banner with download link | Task 4 âœ… |
+| Model pull button with spinner / Done state | Task 4 âœ… |
+| BASE buyer sees greyed-out model (not available) | Task 4 âœ… |
+| `releases.json` + `models-manifest.json` on `gh-pages` | Task 5 âœ… |
+| `tests/test_updater.py` with respx mocks | Task 2 âœ… |
+| Silent on both manifest failures | Task 2 âœ… |
 
 **Placeholder scan:** No TBDs, no "handle edge cases" vagueness, no forward references to undefined types.
 

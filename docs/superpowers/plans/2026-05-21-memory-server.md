@@ -1,8 +1,8 @@
-# Memory Server Implementation Plan
+﻿# Memory Server Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Goal:** Build a local SQLite-backed memory store inside Terminal Monitor that persists chat transcripts, command history, machine snapshots, and notes — injecting relevant context into every AI chat for smarter responses, with Diamond-tier brain sync to NeuroLinked.
+**Goal:** Build a local SQLite-backed memory store inside Terminal Monitor that persists chat transcripts, command history, machine snapshots, and notes â€” injecting relevant context into every AI chat for smarter responses, with Diamond-tier brain sync to NeuroLinked.
 
 **Architecture:** New `termmon/memory.py` owns all SQLite access (`data/memory.db`). `termmon/main.py` gains six new MID+ routes plus lifespan init. `termmon/brain.py` gains optional Diamond-only memory push. `termmon/dashboard.html` gains a MEMORY tab with HISTORY/NOTES/COMMANDS sub-tabs. All memory features are gated MID+; brain sync and insights are DIAMOND only.
 
@@ -14,7 +14,7 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `termmon/memory.py` | Create | All SQLite CRUD — init, add, get, search, delete, shell import |
+| `termmon/memory.py` | Create | All SQLite CRUD â€” init, add, get, search, delete, shell import |
 | `termmon/config.py` | Modify | Add `MemoryConfig` + `memory` field to `Settings` |
 | `termmon/main.py` | Modify | Lifespan init, 6 memory routes, chat injection, kill/model-pull logging |
 | `termmon/brain.py` | Modify | `_push_memory_entries` helper + Diamond path in `sync()` |
@@ -23,13 +23,13 @@
 
 ---
 
-### Task 1: `termmon/memory.py` — SQLite core
+### Task 1: `termmon/memory.py` â€” SQLite core
 
 **Files:**
 - Create: `termmon/memory.py`
 - Test: `tests/test_memory.py`
 
-- [ ] **Step 1: Write the failing unit tests**
+- [x] **Step 1: Write the failing unit tests**
 
 Create `tests/test_memory.py`:
 
@@ -154,14 +154,14 @@ def test_add_entry_stores_metadata(conn):
     assert meta["model"] == "ops-brain"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_memory.py -v
 ```
 Expected: `ModuleNotFoundError: No module named 'termmon.memory'`
 
-- [ ] **Step 3: Create `termmon/memory.py`**
+- [x] **Step 3: Create `termmon/memory.py`**
 
 ```python
 from __future__ import annotations
@@ -305,14 +305,14 @@ def import_shell_history(conn: sqlite3.Connection, max_entries: int = _MAX_ENTRI
     return added
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```
 pytest tests/test_memory.py -v
 ```
 Expected: all 12 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add termmon/memory.py tests/test_memory.py
@@ -321,14 +321,14 @@ git commit -m "feat: add memory.py SQLite core with shell history import"
 
 ---
 
-### Task 2: `termmon/config.py` — MemoryConfig
+### Task 2: `termmon/config.py` â€” MemoryConfig
 
 **Files:**
 - Modify: `termmon/config.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
-Append to `tests/test_config.py` — find the existing file and add:
+Append to `tests/test_config.py` â€” find the existing file and add:
 
 ```python
 def test_memory_config_defaults():
@@ -356,14 +356,14 @@ def test_memory_config_from_yaml(tmp_path):
     cfg_mod._settings = None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```
 pytest tests/test_config.py::test_memory_config_defaults -v
 ```
-Expected: FAIL — `Settings` has no `memory` attribute
+Expected: FAIL â€” `Settings` has no `memory` attribute
 
-- [ ] **Step 3: Modify `termmon/config.py`**
+- [x] **Step 3: Modify `termmon/config.py`**
 
 After the `AlertsConfig` class, before `class Settings`, add:
 
@@ -380,14 +380,14 @@ Then add to `Settings` (after `plugins_dir`):
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```
 pytest tests/test_config.py -v
 ```
 Expected: all config tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add termmon/config.py tests/test_config.py
@@ -396,13 +396,13 @@ git commit -m "feat: add MemoryConfig to Settings"
 
 ---
 
-### Task 3: `termmon/main.py` — lifespan, routes, chat injection, action logging
+### Task 3: `termmon/main.py` â€” lifespan, routes, chat injection, action logging
 
 **Files:**
 - Modify: `termmon/main.py`
 - Test: `tests/test_memory.py` (append API tests)
 
-- [ ] **Step 1: Write the failing API tests**
+- [x] **Step 1: Write the failing API tests**
 
 Append to `tests/test_memory.py`:
 
@@ -582,14 +582,14 @@ def test_chat_no_memory_conn_still_works(tmp_path):
     app.state.license = None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_memory.py -k "mem_client or diamond_client or test_get_memory or test_post_memory or test_delete_memory or test_import_shell_endpoint or test_export or test_insights or test_chat" -v
 ```
-Expected: FAIL — routes don't exist yet
+Expected: FAIL â€” routes don't exist yet
 
-- [ ] **Step 3: Add imports to `termmon/main.py`**
+- [x] **Step 3: Add imports to `termmon/main.py`**
 
 At the top of `termmon/main.py`, add these imports (after the existing imports):
 
@@ -605,7 +605,7 @@ from termmon.memory import (
 )
 ```
 
-- [ ] **Step 4: Update `lifespan` in `termmon/main.py`**
+- [x] **Step 4: Update `lifespan` in `termmon/main.py`**
 
 Replace the existing lifespan function:
 
@@ -661,7 +661,7 @@ async def lifespan(app: FastAPI):
         t.cancel()
 ```
 
-- [ ] **Step 5: Add `MemoryAddRequest` Pydantic model to `termmon/main.py`**
+- [x] **Step 5: Add `MemoryAddRequest` Pydantic model to `termmon/main.py`**
 
 After `class ChatRequest(BaseModel):` block, add:
 
@@ -672,7 +672,7 @@ class MemoryAddRequest(BaseModel):
     metadata: dict = {}
 ```
 
-- [ ] **Step 6: Add the six memory routes to `termmon/main.py`**
+- [x] **Step 6: Add the six memory routes to `termmon/main.py`**
 
 Add after the `@app.get("/api/plugins")` route:
 
@@ -754,7 +754,7 @@ async def memory_insights(request: Request, _: LicenseInfo = require_tier(Tier.D
     return {"source": "local", "suggestions": [{"text": e["content"]} for e in cmds]}
 ```
 
-- [ ] **Step 7: Modify `chat_with_ai` to inject memory context and save messages**
+- [x] **Step 7: Modify `chat_with_ai` to inject memory context and save messages**
 
 Replace the existing `@app.post("/api/chat")` handler:
 
@@ -769,7 +769,7 @@ async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = requ
     system = (
         "You are an ops assistant monitoring the user's local machine. "
         "Answer questions about running processes, system health, and what actions to take. "
-        "Be concise — 1-3 sentences unless more detail is explicitly requested. "
+        "Be concise â€” 1-3 sentences unless more detail is explicitly requested. "
         f"Current system snapshot: active ports={scan['summary']['port_count']}, "
         f"unique processes={scan['summary']['process_count']}, "
         f"MCP servers running={scan['summary']['mcp_count']}. "
@@ -813,8 +813,8 @@ async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = requ
                 content={
                     "reply": (
                         "No AI backend available.\n\n"
-                        "Option 1 — Local (free): install Ollama then run:\n  ollama pull llama3.2:3b\n\n"
-                        "Option 2 — Claude: set ANTHROPIC_API_KEY in your environment."
+                        "Option 1 â€” Local (free): install Ollama then run:\n  ollama pull llama3.2:3b\n\n"
+                        "Option 2 â€” Claude: set ANTHROPIC_API_KEY in your environment."
                     ),
                     "provider": "none",
                     "available": False,
@@ -835,7 +835,7 @@ async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = requ
     return {"reply": reply, "provider": provider, "available": True, "model": model_name}
 ```
 
-- [ ] **Step 8: Add `request: Request` to `kill_process` and log action**
+- [x] **Step 8: Add `request: Request` to `kill_process` and log action**
 
 Replace the existing `@app.post("/api/kill/{pid}")` handler:
 
@@ -865,7 +865,7 @@ async def kill_process(pid: int, request: Request):
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 ```
 
-- [ ] **Step 9: Add `request: Request` to `model_pull` and log action**
+- [x] **Step 9: Add `request: Request` to `model_pull` and log action**
 
 Replace the existing `@app.post("/api/update/model/pull")` handler:
 
@@ -889,14 +889,14 @@ async def model_pull(req: ModelPullRequest, request: Request):
         return JSONResponse(status_code=503, content={"detail": "Ollama unavailable"})
 ```
 
-- [ ] **Step 10: Run all tests**
+- [x] **Step 10: Run all tests**
 
 ```
 pytest tests/ -v
 ```
 Expected: all tests PASS (150+ tests)
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add termmon/main.py tests/test_memory.py
@@ -905,14 +905,14 @@ git commit -m "feat: add memory routes, lifespan init, chat injection, action lo
 
 ---
 
-### Task 4: `termmon/brain.py` — Diamond memory sync
+### Task 4: `termmon/brain.py` â€” Diamond memory sync
 
 **Files:**
 - Modify: `termmon/brain.py`
 - Modify: `termmon/main.py` (update `_brain_loop`)
 - Test: `tests/test_memory.py` (append brain sync tests)
 
-- [ ] **Step 1: Write failing brain sync tests**
+- [x] **Step 1: Write failing brain sync tests**
 
 Append to `tests/test_memory.py`:
 
@@ -976,14 +976,14 @@ def test_brain_sync_skips_memory_for_mid(tmp_path):
     assert result is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```
 pytest tests/test_memory.py::test_brain_sync_pushes_memory_for_diamond tests/test_memory.py::test_brain_sync_skips_memory_for_mid -v
 ```
-Expected: FAIL — `sync()` doesn't accept `conn` or `since_ts` params
+Expected: FAIL â€” `sync()` doesn't accept `conn` or `since_ts` params
 
-- [ ] **Step 3: Modify `termmon/brain.py`**
+- [x] **Step 3: Modify `termmon/brain.py`**
 
 Replace the entire file:
 
@@ -1076,7 +1076,7 @@ async def sync(scan_result: dict, conn=None, since_ts: str | None = None) -> str
     return None
 ```
 
-- [ ] **Step 4: Update `_brain_loop` in `termmon/main.py` to pass Diamond memory params**
+- [x] **Step 4: Update `_brain_loop` in `termmon/main.py` to pass Diamond memory params**
 
 Replace the existing `_brain_loop` function:
 
@@ -1101,14 +1101,14 @@ async def _brain_loop() -> None:
             logger.warning("Brain loop error: %s", exc)
 ```
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 ```
 pytest tests/ -v
 ```
 Expected: all tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add termmon/brain.py termmon/main.py tests/test_memory.py
@@ -1117,14 +1117,14 @@ git commit -m "feat: extend brain sync with Diamond memory entry push"
 
 ---
 
-### Task 5: `termmon/dashboard.html` — MEMORY tab
+### Task 5: `termmon/dashboard.html` â€” MEMORY tab
 
 **Files:**
 - Modify: `termmon/dashboard.html`
 
-No unit tests for dashboard JS — verify manually by starting the app.
+No unit tests for dashboard JS â€” verify manually by starting the app.
 
-- [ ] **Step 1: Add MEMORY tab button to `#tab-bar`**
+- [x] **Step 1: Add MEMORY tab button to `#tab-bar`**
 
 Find this line in `termmon/dashboard.html`:
 ```html
@@ -1136,7 +1136,7 @@ After it, add:
   <div class="tab" data-tier="mid" onclick="switchTab('memory')">MEMORY</div>
 ```
 
-- [ ] **Step 2: Add MEMORY tab pane HTML**
+- [x] **Step 2: Add MEMORY tab pane HTML**
 
 Find this block (the closing `</div>` of `#pane-ai` and then the closing of `#tab-content`):
 ```html
@@ -1176,10 +1176,10 @@ Before the closing `</div>` of tab-content, add the MEMORY pane (right after the
   </div>
 ```
 
-- [ ] **Step 3: Add memory JS — paste before the closing `</script>` tag**
+- [x] **Step 3: Add memory JS â€” paste before the closing `</script>` tag**
 
 ```javascript
-// ── Memory Tab ─────────────────────────────────────────────────
+// â”€â”€ Memory Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _memoryCurrentPane = 'history';
 
 function switchMemoryPane(name) {
@@ -1311,7 +1311,7 @@ function _saveToMemory(role, text, model) {
 }
 ```
 
-- [ ] **Step 4: Modify `switchTab` to handle 'memory'**
+- [x] **Step 4: Modify `switchTab` to handle 'memory'**
 
 Find the existing `switchTab` function. Inside it, find the block that checks for special tabs:
 ```javascript
@@ -1325,7 +1325,7 @@ Add after the `if (name === 'ai')` line:
   if (name === 'memory') { switchMemoryPane('history'); }
 ```
 
-- [ ] **Step 5: Modify `sendChat` to save messages to memory**
+- [x] **Step 5: Modify `sendChat` to save messages to memory**
 
 In the `sendChat` function, find the successful AI response block:
 ```javascript
@@ -1343,7 +1343,7 @@ Replace with:
     }
 ```
 
-- [ ] **Step 6: Manual verification — start the app and test**
+- [x] **Step 6: Manual verification â€” start the app and test**
 
 ```bash
 .\.venv\Scripts\uvicorn termmon.main:app --port 8084
@@ -1352,19 +1352,19 @@ Replace with:
 Open `http://localhost:8084` in browser. Verify:
 - MEMORY tab appears after AI tab
 - Clicking MEMORY shows HISTORY sub-tab with empty state or entries
-- NOTES sub-tab: type a note, click SAVE NOTE — it appears in the list below
-- COMMANDS sub-tab: click RE-IMPORT SHELL HISTORY — entries populate
-- Send a chat message in AI tab — switch to MEMORY > HISTORY and confirm the message appears
+- NOTES sub-tab: type a note, click SAVE NOTE â€” it appears in the list below
+- COMMANDS sub-tab: click RE-IMPORT SHELL HISTORY â€” entries populate
+- Send a chat message in AI tab â€” switch to MEMORY > HISTORY and confirm the message appears
 - Search box in HISTORY filters results
 
-- [ ] **Step 7: Run tests to confirm nothing broken**
+- [x] **Step 7: Run tests to confirm nothing broken**
 
 ```
 pytest tests/ -v
 ```
 Expected: all tests PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add termmon/dashboard.html
@@ -1377,7 +1377,7 @@ git commit -m "feat: add MEMORY tab with HISTORY/NOTES/COMMANDS sub-tabs"
 
 **Files:** No new files
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 ```
 pytest tests/ -v --tb=short
@@ -1385,15 +1385,15 @@ pytest tests/ -v --tb=short
 
 Expected: all tests pass. Count should be 150+ (was 150 before this feature).
 
-- [ ] **Step 2: Check for regressions in existing routes**
+- [x] **Step 2: Check for regressions in existing routes**
 
 ```
 pytest tests/test_api.py tests/test_licensing.py tests/test_config.py tests/test_plugin_loader.py -v
 ```
 
-Expected: all PASS — no regressions from `kill_process` and `model_pull` signature changes.
+Expected: all PASS â€” no regressions from `kill_process` and `model_pull` signature changes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .
@@ -1405,12 +1405,12 @@ git commit -m "test: verify full suite passes with memory server"
 ## Self-Review
 
 **Spec coverage:**
-- `termmon/memory.py` with all 6 functions → Task 1 ✅
-- `MemoryConfig` → Task 2 ✅
-- Lifespan init + 6 routes + chat injection + kill/model-pull logging → Task 3 ✅
-- Brain sync extension → Task 4 ✅
-- Dashboard MEMORY tab with 3 sub-tabs → Task 5 ✅
-- All 20 spec tests → covered across Tasks 1–4 ✅
+- `termmon/memory.py` with all 6 functions â†’ Task 1 âœ…
+- `MemoryConfig` â†’ Task 2 âœ…
+- Lifespan init + 6 routes + chat injection + kill/model-pull logging â†’ Task 3 âœ…
+- Brain sync extension â†’ Task 4 âœ…
+- Dashboard MEMORY tab with 3 sub-tabs â†’ Task 5 âœ…
+- All 20 spec tests â†’ covered across Tasks 1â€“4 âœ…
 
 **No placeholders:** All code is complete and explicit.
 

@@ -1,6 +1,6 @@
-# Terminal Monitor Implementation Plan
+﻿# Terminal Monitor Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a FastAPI agent (port 8084) that scans all listening localhost ports, checks their health, detects running MCP servers from Claude Code's settings, feeds snapshots to the NeuroLinked brain every 60s, and appears in the Agent Hub as a new Ops Room character.
 
@@ -40,14 +40,14 @@
 - Create: `termmon/scanner/__init__.py`
 - Create: `tests/__init__.py`
 
-- [ ] **Step 1: Create project directories**
+- [x] **Step 1: Create project directories**
 
 ```powershell
 cd C:\Users\hms16\Me\MyWords\Sandbox\projects\terminal-monitor
 mkdir termmon\scanner, tests
 ```
 
-- [ ] **Step 2: Write `requirements.txt`**
+- [x] **Step 2: Write `requirements.txt`**
 
 ```
 fastapi>=0.110.0
@@ -60,20 +60,20 @@ pytest-asyncio>=0.23.0
 respx>=0.21.0
 ```
 
-- [ ] **Step 3: Write `pytest.ini`**
+- [x] **Step 3: Write `pytest.ini`**
 
 ```ini
 [pytest]
 asyncio_mode = auto
 ```
 
-- [ ] **Step 4: Create empty package markers**
+- [x] **Step 4: Create empty package markers**
 
-`termmon/__init__.py` — empty file
-`termmon/scanner/__init__.py` — empty file
-`tests/__init__.py` — empty file
+`termmon/__init__.py` â€” empty file
+`termmon/scanner/__init__.py` â€” empty file
+`tests/__init__.py` â€” empty file
 
-- [ ] **Step 5: Create and activate virtual environment**
+- [x] **Step 5: Create and activate virtual environment**
 
 ```powershell
 python -m venv .venv
@@ -82,7 +82,7 @@ python -m venv .venv
 
 Expected: all packages install without error.
 
-- [ ] **Step 6: Verify pytest runs (no tests yet)**
+- [x] **Step 6: Verify pytest runs (no tests yet)**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/ -v
@@ -90,7 +90,7 @@ Expected: all packages install without error.
 
 Expected: `no tests ran` or `0 passed`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add requirements.txt pytest.ini termmon\ tests\
@@ -105,7 +105,7 @@ git commit -m "chore: project scaffold"
 - Create: `termmon/scanner/ports.py`
 - Create: `tests/test_ports.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_ports.py`:
 
@@ -179,7 +179,7 @@ def test_scan_ports_attaches_label():
     assert result[0]["label"] == "Job Agent"
 ```
 
-- [ ] **Step 2: Run tests — verify they fail**
+- [x] **Step 2: Run tests â€” verify they fail**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_ports.py -v
@@ -187,7 +187,7 @@ def test_scan_ports_attaches_label():
 
 Expected: FAIL with `ModuleNotFoundError` or `ImportError`.
 
-- [ ] **Step 3: Implement `termmon/scanner/ports.py`**
+- [x] **Step 3: Implement `termmon/scanner/ports.py`**
 
 ```python
 from __future__ import annotations
@@ -254,7 +254,7 @@ def scan_ports(hub_config_path: Optional[Path] = None) -> list[dict]:
     return sorted(results, key=lambda x: x["port"])
 ```
 
-- [ ] **Step 4: Run tests — verify they pass**
+- [x] **Step 4: Run tests â€” verify they pass**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_ports.py -v
@@ -262,7 +262,7 @@ def scan_ports(hub_config_path: Optional[Path] = None) -> list[dict]:
 
 Expected: 4 PASSED.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add termmon\scanner\ports.py tests\test_ports.py
@@ -277,7 +277,7 @@ git commit -m "feat: port scanner with psutil and hub label lookup"
 - Create: `termmon/scanner/health.py`
 - Create: `tests/test_health.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_health.py`:
 
@@ -328,7 +328,7 @@ async def test_falls_back_to_root_on_404():
     assert result[0]["healthy"] is True
 ```
 
-- [ ] **Step 2: Run tests — verify they fail**
+- [x] **Step 2: Run tests â€” verify they fail**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_health.py -v
@@ -336,7 +336,7 @@ async def test_falls_back_to_root_on_404():
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement `termmon/scanner/health.py`**
+- [x] **Step 3: Implement `termmon/scanner/health.py`**
 
 ```python
 from __future__ import annotations
@@ -363,7 +363,7 @@ async def check_health(ports: list[dict]) -> list[dict]:
     return [{**p, "healthy": healthy} for p, healthy in zip(ports, results)]
 ```
 
-- [ ] **Step 4: Run tests — verify they pass**
+- [x] **Step 4: Run tests â€” verify they pass**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_health.py -v
@@ -371,7 +371,7 @@ async def check_health(ports: list[dict]) -> list[dict]:
 
 Expected: 3 PASSED.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add termmon\scanner\health.py tests\test_health.py
@@ -386,7 +386,7 @@ git commit -m "feat: async health checker with /health fallback to /"
 - Create: `termmon/scanner/mcp.py`
 - Create: `tests/test_mcp.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_mcp.py`:
 
@@ -441,7 +441,7 @@ def test_scan_mcp_not_running():
     assert result[0]["pid"] is None
 ```
 
-- [ ] **Step 2: Run tests — verify they fail**
+- [x] **Step 2: Run tests â€” verify they fail**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_mcp.py -v
@@ -449,7 +449,7 @@ def test_scan_mcp_not_running():
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement `termmon/scanner/mcp.py`**
+- [x] **Step 3: Implement `termmon/scanner/mcp.py`**
 
 ```python
 from __future__ import annotations
@@ -514,7 +514,7 @@ def scan_mcp(settings_path: Optional[Path] = None) -> list[dict]:
     return results
 ```
 
-- [ ] **Step 4: Run tests — verify they pass**
+- [x] **Step 4: Run tests â€” verify they pass**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_mcp.py -v
@@ -522,7 +522,7 @@ def scan_mcp(settings_path: Optional[Path] = None) -> list[dict]:
 
 Expected: 4 PASSED.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add termmon\scanner\mcp.py tests\test_mcp.py
@@ -536,9 +536,9 @@ git commit -m "feat: MCP detector via Claude settings.json and process matching"
 **Files:**
 - Create: `termmon/brain.py`
 
-No dedicated test file — brain.py is exercised via `test_api.py` in Task 6.
+No dedicated test file â€” brain.py is exercised via `test_api.py` in Task 6.
 
-- [ ] **Step 1: Implement `termmon/brain.py`**
+- [x] **Step 1: Implement `termmon/brain.py`**
 
 ```python
 from __future__ import annotations
@@ -592,7 +592,7 @@ async def sync(scan_result: dict) -> None:
             logger.warning("Brain sync failed: %s", exc)
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```powershell
 git add termmon\brain.py
@@ -607,7 +607,7 @@ git commit -m "feat: brain sync module with fire-and-forget error handling"
 - Create: `termmon/main.py`
 - Create: `tests/test_api.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_api.py`:
 
@@ -698,7 +698,7 @@ def test_restart_stub_returns_501():
     assert r.status_code == 501
 ```
 
-- [ ] **Step 2: Run tests — verify they fail**
+- [x] **Step 2: Run tests â€” verify they fail**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/test_api.py -v
@@ -706,7 +706,7 @@ def test_restart_stub_returns_501():
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement `termmon/main.py`**
+- [x] **Step 3: Implement `termmon/main.py`**
 
 ```python
 from __future__ import annotations
@@ -813,7 +813,7 @@ async def restart_agent(agent_id: str):
     return JSONResponse(status_code=501, content={"detail": "restart not implemented (v2)"})
 ```
 
-- [ ] **Step 4: Run all tests — verify they pass**
+- [x] **Step 4: Run all tests â€” verify they pass**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/ -v
@@ -821,7 +821,7 @@ async def restart_agent(agent_id: str):
 
 Expected: 18 PASSED (4 ports + 3 health + 4 mcp + 7 api).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add termmon\main.py tests\test_api.py
@@ -836,9 +836,9 @@ git commit -m "feat: FastAPI app with scan endpoints, stats, brain sync, and v2 
 - Modify: `../agent-hub/hub-config.yaml`
 - Modify: `../agent-hub/frontend/index.html`
 
-No new tests — changes are config + HTML/CSS/JS. Verify visually at http://localhost:8090 after the hub reloads.
+No new tests â€” changes are config + HTML/CSS/JS. Verify visually at http://localhost:8090 after the hub reloads.
 
-- [ ] **Step 1: Add terminal-monitor to `hub-config.yaml`**
+- [x] **Step 1: Add terminal-monitor to `hub-config.yaml`**
 
 Append to the end of `C:\Users\hms16\Me\MyWords\Sandbox\projects\agent-hub\hub-config.yaml`:
 
@@ -850,7 +850,7 @@ Append to the end of `C:\Users\hms16\Me\MyWords\Sandbox\projects\agent-hub\hub-c
     health: /health
     dashboard: http://localhost:8084/docs
     start_command: "uvicorn termmon.main:app --port 8084"
-    character: "🖥️"
+    character: "ðŸ–¥ï¸"
     room: ops-room
     stats:
       - label: Active Ports
@@ -883,7 +883,7 @@ Append to the end of `C:\Users\hms16\Me\MyWords\Sandbox\projects\agent-hub\hub-c
         connected: true
 ```
 
-- [ ] **Step 2: Update CSS — split Scout HQ row to add Ops Room**
+- [x] **Step 2: Update CSS â€” split Scout HQ row to add Ops Room**
 
 In `frontend/index.html`, find and replace the Scout HQ CSS line:
 
@@ -898,7 +898,7 @@ Replace with:
   #room-ops-room      { grid-column: 2; grid-row: 3; border-color: #00bcd455; }
 ```
 
-- [ ] **Step 3: Add Ops Room HTML**
+- [x] **Step 3: Add Ops Room HTML**
 
 In `frontend/index.html`, find the closing `</div>` after the Scout HQ room div:
 
@@ -933,7 +933,7 @@ Replace with:
   </div>
 ```
 
-- [ ] **Step 4: Update minimap — split Scout HQ map cell**
+- [x] **Step 4: Update minimap â€” split Scout HQ map cell**
 
 Find:
 ```html
@@ -955,7 +955,7 @@ Replace with:
         </div>
 ```
 
-- [ ] **Step 5: Add terminal-monitor drift config to JS**
+- [x] **Step 5: Add terminal-monitor drift config to JS**
 
 Find:
 ```javascript
@@ -970,15 +970,15 @@ Replace with:
 };
 ```
 
-- [ ] **Step 6: Verify hub reloads and shows Ops Room**
+- [x] **Step 6: Verify hub reloads and shows Ops Room**
 
 The hub is running with `--reload`, so it picks up hub-config.yaml changes automatically. Open http://localhost:8090 and verify:
 - Scout HQ now occupies only the left half of row 3
 - Ops Room occupies the right half of row 3
-- `🖥️` character appears in Ops Room (offline state since terminal-monitor isn't running yet)
+- `ðŸ–¥ï¸` character appears in Ops Room (offline state since terminal-monitor isn't running yet)
 - Minimap shows OPS cell alongside SCOUT cell
 
-- [ ] **Step 7: Commit hub changes**
+- [x] **Step 7: Commit hub changes**
 
 ```powershell
 cd C:\Users\hms16\Me\MyWords\Sandbox\projects\agent-hub
@@ -994,12 +994,12 @@ cd C:\Users\hms16\Me\MyWords\Sandbox\projects\terminal-monitor
 **Files:**
 - Create: `README.md`
 
-- [ ] **Step 1: Write `README.md`**
+- [x] **Step 1: Write `README.md`**
 
 ```markdown
 # Terminal Monitor
 
-FastAPI agent (port 8084) that scans all listening localhost ports, checks their health, detects running MCP servers, and feeds snapshots to the NeuroLinked brain. Appears in the Agent Hub as `🖥️` in the Ops Room.
+FastAPI agent (port 8084) that scans all listening localhost ports, checks their health, detects running MCP servers, and feeds snapshots to the NeuroLinked brain. Appears in the Agent Hub as `ðŸ–¥ï¸` in the Ops Room.
 
 ## Setup
 
@@ -1033,12 +1033,12 @@ Open http://localhost:8084/docs for the interactive API.
 | GET | `/api/stats/mcp_count` | Count of running MCP servers |
 | GET | `/api/stats/process_count` | Count of unique processes |
 | POST | `/api/brain/sync` | Push snapshot to NeuroLinked brain |
-| POST | `/api/kill/{pid}` | *501 stub — v2* |
-| POST | `/api/restart/{id}` | *501 stub — v2* |
+| POST | `/api/kill/{pid}` | *501 stub â€” v2* |
+| POST | `/api/restart/{id}` | *501 stub â€” v2* |
 
 ## Agent Hub
 
-Add to `agent-hub/hub-config.yaml` — see the `terminal-monitor` entry in that file. Hub room: `ops-room` (right half of row 3, sharing the row with Scout HQ).
+Add to `agent-hub/hub-config.yaml` â€” see the `terminal-monitor` entry in that file. Hub room: `ops-room` (right half of row 3, sharing the row with Scout HQ).
 
 ## Brain sync
 
@@ -1049,7 +1049,7 @@ Auto-syncs every 60 seconds. Manual sync via `POST /api/brain/sync`. Brain at `h
 Reads `~/.claude/settings.json` for configured MCP server names, then scans the Windows process list for matching executables. Stdio-based MCP servers (most Claude Code servers) show up via their node.exe or python.exe command lines.
 ```
 
-- [ ] **Step 2: Run full test suite one final time**
+- [x] **Step 2: Run full test suite one final time**
 
 ```powershell
 .\.venv\Scripts\python -m pytest tests/ -v
@@ -1057,7 +1057,7 @@ Reads `~/.claude/settings.json` for configured MCP server names, then scans the 
 
 Expected: 18 PASSED, 0 FAILED.
 
-- [ ] **Step 3: Final commit**
+- [x] **Step 3: Final commit**
 
 ```powershell
 git add README.md
