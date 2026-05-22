@@ -1,6 +1,6 @@
 {
-  "latest": "1.0.0",
-  "changelog": "Initial release",
-  "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v1.0.0/terminal-monitor-v1.0.0.zip",
+  "latest": "2.0.0",
+  "changelog": "Plugin architecture, custom memory server (MID+), brain sync (Diamond), MEMORY tab",
+  "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.0.0/terminal-monitor-v2.0.0.zip",
   "min_tier": "base"
 }
