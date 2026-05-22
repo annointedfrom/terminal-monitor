@@ -33,6 +33,12 @@ class AlertsConfig(BaseModel):
     offline_notify: bool = True
 
 
+class MemoryConfig(BaseModel):
+    enabled: bool = True
+    max_entries: int = 10000
+    shell_history_import: bool = True
+
+
 class Settings(BaseModel):
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     brain: BrainConfig = Field(default_factory=BrainConfig)
@@ -40,6 +46,7 @@ class Settings(BaseModel):
     alerts: AlertsConfig = Field(default_factory=AlertsConfig)
     license_key: str = ""
     plugins_dir: Optional[str] = None
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
 
 
 _settings: Optional[Settings] = None

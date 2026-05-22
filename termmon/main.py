@@ -3,22 +3,30 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import pathlib
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-import pathlib
-
+import httpx
 import psutil
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
 from termmon.licensing import verify_license, LicenseInfo, Tier, require_tier
 from termmon.updater import check_updates, ollama_pull
 from termmon.plugin_loader import load_plugins, _resolve_plugins_dir, LoadedPlugin
-from pydantic import BaseModel
 
 from termmon import brain
 from termmon.config import get_settings, write_settings
+from termmon.memory import (
+    init_db as _init_db,
+    add_entry as _add_entry,
+    get_recent as _get_recent,
+    search as _memory_search,
+    delete_entry as _delete_entry,
+    import_shell_history as _import_shell_history,
+)
 from termmon.scanner import ollama
 from termmon.scanner import claude_ai
 from termmon.scanner.alerts import evaluate_alerts
@@ -33,6 +41,9 @@ from termmon.scanner.history import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Sentinel used to detect test-pre-seeded app.state.memory_conn in lifespan
+_SENTINEL = object()
 
 _PROC_DESC_PATH = pathlib.Path(__file__).parent / "proc_desc.json"
 
@@ -109,7 +120,17 @@ async def _brain_loop() -> None:
         await asyncio.sleep(60)
         try:
             result = await _full_scan()
-            await brain.sync(result)
+            license_info = getattr(app.state, "license", None)
+            conn = getattr(app.state, "memory_conn", None)
+            since_ts = getattr(app.state, "last_memory_sync_ts", None)
+            is_diamond = license_info is not None and license_info.tier == Tier.DIAMOND
+            new_ts = await brain.sync(
+                result,
+                conn=conn if is_diamond else None,
+                since_ts=since_ts if is_diamond else None,
+            )
+            if new_ts:
+                app.state.last_memory_sync_ts = new_ts
         except Exception as exc:
             logger.warning("Brain loop error: %s", exc)
 
@@ -123,12 +144,59 @@ async def lifespan(app: FastAPI):
     app.state.plugins = load_plugins(plugins_dir)
     for plugin in app.state.plugins:
         _register_plugin_endpoints(app, plugin)
+    _pre_seeded_conn = getattr(app.state, "memory_conn", _SENTINEL)
+    if _pre_seeded_conn is not _SENTINEL:
+        # Test pre-seeded the connection — skip production DB init entirely
+        pass
+    elif settings.memory.enabled:
+        try:
+            app.state.memory_conn = _init_db(
+                pathlib.Path("data/memory.db"), settings.memory.max_entries
+            )
+        except Exception as exc:
+            logger.warning("Memory DB init failed: %s", exc)
+            app.state.memory_conn = None
+        if app.state.memory_conn is not None:
+            try:
+                if settings.memory.shell_history_import:
+                    _import_shell_history(app.state.memory_conn, settings.memory.max_entries)
+                scan = await _full_scan()
+                res = get_resources()
+                _add_entry(
+                    app.state.memory_conn,
+                    "snapshot",
+                    (
+                        f"ports={scan['summary']['port_count']}, "
+                        f"processes={scan['summary']['process_count']}, "
+                        f"MCP={scan['summary']['mcp_count']}, "
+                        f"CPU={res.get('cpu_percent', 0):.0f}%, "
+                        f"RAM={res.get('memory', {}).get('percent', 0):.0f}%"
+                    ),
+                    {
+                        "port_count": scan["summary"]["port_count"],
+                        "process_count": scan["summary"]["process_count"],
+                        "mcp_count": scan["summary"]["mcp_count"],
+                    },
+                    "auto",
+                    settings.memory.max_entries,
+                )
+                app.state.last_memory_sync_ts = datetime.now(timezone.utc).isoformat()
+            except Exception as exc:
+                logger.warning("Memory startup snapshot failed (non-fatal): %s", exc)
+    else:
+        app.state.memory_conn = None
     tasks = []
     if settings.brain.enabled:
         tasks.append(asyncio.create_task(_brain_loop()))
     yield
     for t in tasks:
         t.cancel()
+
+
+class MemoryAddRequest(BaseModel):
+    type: str = "note"
+    content: str
+    metadata: dict = Field(default_factory=dict)
 
 
 app = FastAPI(title="Terminal Monitor", lifespan=lifespan)
@@ -234,6 +302,83 @@ async def list_plugins(request: Request):
     ]
 
 
+@app.get("/api/memory", dependencies=[require_tier(Tier.MID)])
+async def list_memory(
+    request: Request,
+    type: str | None = None,
+    limit: int = 50,
+    search: str | None = None,
+):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    if search:
+        return _memory_search(conn, search, limit)
+    return _get_recent(conn, type, limit)
+
+
+@app.post("/api/memory", dependencies=[require_tier(Tier.MID)])
+async def add_memory(body: MemoryAddRequest, request: Request):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    settings = get_settings()
+    entry_id = _add_entry(
+        conn, body.type, body.content, body.metadata, "user", settings.memory.max_entries
+    )
+    return {"id": entry_id}
+
+
+@app.post("/api/memory/import-shell", dependencies=[require_tier(Tier.MID)])
+async def reimport_shell(request: Request):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    settings = get_settings()
+    added = _import_shell_history(conn, settings.memory.max_entries)
+    return {"added": added}
+
+
+@app.get("/api/memory/export", dependencies=[require_tier(Tier.MID)])
+async def export_memory(request: Request):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    return _get_recent(conn, None, 100_000)
+
+
+@app.get("/api/memory/insights", dependencies=[require_tier(Tier.DIAMOND)])
+async def memory_insights(request: Request):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    settings = get_settings()
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{settings.brain.url}/api/claude/search",
+                params={"q": "terminal monitor commands patterns", "limit": 5},
+                timeout=5.0,
+            )
+            if r.status_code == 200:
+                return {"source": "brain", "suggestions": r.json()}
+    except Exception:
+        pass
+    cmds = _get_recent(conn, "command", 5)
+    return {"source": "local", "suggestions": [{"text": e["content"]} for e in cmds]}
+
+
+@app.delete("/api/memory/{entry_id}", dependencies=[require_tier(Tier.MID)])
+async def delete_memory(entry_id: int, request: Request):
+    conn = getattr(request.app.state, "memory_conn", None)
+    if conn is None:
+        return JSONResponse(status_code=503, content={"detail": "Memory not available"})
+    deleted = _delete_entry(conn, entry_id)
+    if not deleted:
+        return JSONResponse(status_code=404, content={"detail": "Entry not found"})
+    return {"deleted": True, "id": entry_id}
+
+
 @app.get("/api/update/check")
 async def update_check(request: Request):
     if request.app.state.update_cache is None:
@@ -244,9 +389,18 @@ async def update_check(request: Request):
 
 
 @app.post("/api/update/model/pull", dependencies=[require_tier(Tier.MID)])
-async def model_pull(req: ModelPullRequest):
+async def model_pull(req: ModelPullRequest, request: Request):
     try:
         await ollama_pull(req.tag)
+        conn = getattr(request.app.state, "memory_conn", None)
+        if conn is not None:
+            settings = get_settings()
+            try:
+                _add_entry(conn, "command", f"ollama pull {req.tag}",
+                           {"action": "model_pull", "target": req.tag, "result": "ok"},
+                           "termmon", settings.memory.max_entries)
+            except Exception as exc:
+                logger.warning("Memory log for model_pull failed: %s", exc)
         return {"pulled": True, "tag": req.tag}
     except Exception as exc:
         logger.warning("Model pull failed for tag=%s: %s", req.tag, exc)
@@ -261,13 +415,23 @@ async def brain_sync(_: LicenseInfo = require_tier(Tier.DIAMOND)):
 
 
 @app.post("/api/kill/{pid}", dependencies=[require_tier(Tier.MID)])
-async def kill_process(pid: int):
+async def kill_process(pid: int, request: Request):
     try:
         proc = psutil.Process(pid)
+        proc_name = proc.name()
         proc.terminate()
         await asyncio.sleep(0.5)
         if proc.is_running():
             proc.kill()
+        conn = getattr(request.app.state, "memory_conn", None)
+        if conn is not None:
+            settings = get_settings()
+            try:
+                _add_entry(conn, "command", f"kill {proc_name} (pid={pid})",
+                           {"action": "kill", "target": proc_name, "pid": pid, "result": "ok"},
+                           "termmon", settings.memory.max_entries)
+            except Exception as exc:
+                logger.warning("Memory log for kill failed: %s", exc)
         return {"killed": True, "pid": pid}
     except psutil.NoSuchProcess:
         return JSONResponse(status_code=404, content={"detail": "Process not found"})
@@ -378,7 +542,7 @@ class SetupRequest(BaseModel):
 
 
 @app.post("/api/chat")
-async def chat_with_ai(req: ChatRequest, _: LicenseInfo = require_tier(Tier.MID)):
+async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = require_tier(Tier.MID)):
     scan = await _full_scan()
     ports_summary = [
         {"process": p["process"], "port": p["port"], "memory_mb": round(p.get("memory_mb", 0))}
@@ -393,26 +557,69 @@ async def chat_with_ai(req: ChatRequest, _: LicenseInfo = require_tier(Tier.MID)
         f"MCP servers running={scan['summary']['mcp_count']}. "
         f"Top processes: {json.dumps(ports_summary)}"
     )
+    conn = getattr(request.app.state, "memory_conn", None)
+    settings = get_settings()
+    if conn is not None:
+        mem_parts = []
+        recent_chats = _get_recent(conn, "chat", 10)
+        if recent_chats:
+            def _chat_role(meta_str: str) -> str:
+                try:
+                    return json.loads(meta_str or "{}").get("role", "?")
+                except Exception:
+                    return "?"
+            chat_lines = "\n".join(
+                f"  [{_chat_role(e['metadata'])}] {e['content'][:200]}"
+                for e in reversed(recent_chats)
+            )
+            mem_parts.append(f"Recent conversation:\n{chat_lines}")
+        recent_cmds = _get_recent(conn, "command", 20)
+        if recent_cmds:
+            cmd_lines = "\n".join(f"  {e['content'][:200]}" for e in recent_cmds)
+            mem_parts.append(f"Recent commands:\n{cmd_lines}")
+        snapshots = _get_recent(conn, "snapshot", 1)
+        if snapshots:
+            mem_parts.append(f"Last snapshot: {snapshots[0]['content']}")
+        if mem_parts:
+            system += "\n\n" + "\n\n".join(mem_parts)
+
     result = await ollama.generate(req.message, system, req.model)
     if result["available"]:
-        return {"reply": result["reply"], "provider": "ollama", "available": True, "model": req.model}
+        reply = result["reply"]
+        provider = "ollama"
+        model_name = req.model
+    else:
+        claude_result = await claude_ai.generate(req.message, system)
+        if claude_result["available"]:
+            reply = claude_result["reply"]
+            provider = "claude"
+            model_name = "claude-haiku-4-5-20251001"
+        else:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "reply": (
+                        "No AI backend available.\n\n"
+                        "Option 1 — Local (free): install Ollama then run:\n  ollama pull llama3.2:3b\n\n"
+                        "Option 2 — Claude: set ANTHROPIC_API_KEY in your environment."
+                    ),
+                    "provider": "none",
+                    "available": False,
+                },
+            )
 
-    claude_result = await claude_ai.generate(req.message, system)
-    if claude_result["available"]:
-        return {"reply": claude_result["reply"], "provider": "claude", "available": True, "model": "claude-haiku-4-5-20251001"}
+    if conn is not None:
+        try:
+            _add_entry(conn, "chat", req.message,
+                       {"role": "you", "model": model_name}, "auto",
+                       settings.memory.max_entries)
+            _add_entry(conn, "chat", reply,
+                       {"role": "ai", "model": model_name}, "auto",
+                       settings.memory.max_entries)
+        except Exception as exc:
+            logger.warning("Memory save for chat failed: %s", exc)
 
-    return JSONResponse(
-        status_code=503,
-        content={
-            "reply": (
-                "No AI backend available.\n\n"
-                "Option 1 — Local (free): install Ollama then run:\n  ollama pull llama3.2:3b\n\n"
-                "Option 2 — Claude: set ANTHROPIC_API_KEY in your environment."
-            ),
-            "provider": "none",
-            "available": False,
-        },
-    )
+    return {"reply": reply, "provider": provider, "available": True, "model": model_name}
 
 
 @app.get("/api/ollama/models")
