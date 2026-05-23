@@ -531,7 +531,7 @@ class SetupRequest(BaseModel):
     title: str = "Ops Dashboard"
     default_model: str = "ops-brain"
     training_threshold: int = 100
-    terminal_enabled: bool = True
+    terminal_enabled: bool = False
     brain_enabled: bool = False
     brain_url: str = "http://localhost:8000"
     services: list[dict] = []
@@ -660,6 +660,17 @@ async def training_status():
     return {"count": count, "threshold": threshold, "ready": count >= threshold}
 
 
+_TERMINAL_BLOCKED = re.compile(
+    r"Invoke-Expression|IEX\s|\bIEX\b"
+    r"|Invoke-WebRequest|iwr\s"
+    r"|Net\.WebClient|DownloadString|DownloadFile"
+    r"|Set-MpPreference"
+    r"|New-Service|schtasks.{0,40}/create"
+    r"|reg\s+add.{0,40}CurrentVersion\\Run",
+    re.IGNORECASE,
+)
+
+
 @app.websocket("/ws/terminal")
 async def terminal_ws(websocket: WebSocket):
     """Local-only PowerShell command runner — one process per command."""
@@ -676,6 +687,9 @@ async def terminal_ws(websocket: WebSocket):
             cmd = await websocket.receive_text()
             cmd = cmd.strip()
             if not cmd:
+                continue
+            if _TERMINAL_BLOCKED.search(cmd):
+                await websocket.send_text("[blocked] Command contains restricted patterns.\r\n")
                 continue
             try:
                 proc = await asyncio.create_subprocess_exec(
@@ -740,7 +754,10 @@ async def setup_post(req: SetupRequest, request: Request):
         license_key=req.license_key,
     )
     write_settings(settings)
-    request.app.state.license = verify_license(req.license_key)
+    new_license = verify_license(req.license_key)
+    # Never downgrade a valid in-memory license to None — preserve it when no valid new key given
+    if new_license is not None or not _CONFIG_PATH.exists():
+        request.app.state.license = new_license
     return {"saved": True}
 
 
