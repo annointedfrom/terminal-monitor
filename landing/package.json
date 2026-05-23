@@ -1,0 +1,12 @@
+{
+  "name": "terminal-monitor-landing",
+  "private": true,
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0",
+    "resend": "^6.12.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20"
+  }
+}
