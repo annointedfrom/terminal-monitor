@@ -1,578 +1,1844 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terminal Monitor — Real-Time Ops Dashboard for AI Developers</title>
-  <meta name="description" content="Monitor every port, process, MCP server, and resource on your machine from a single browser UI. Free tier available. Built for AI developers." />
-  <meta property="og:title" content="Terminal Monitor — Ops Dashboard for AI Devs" />
-  <meta property="og:description" content="Port scanner · Process monitor · MCP detection · Memory server · NeuroLinked brain sync. Ships with Docker. Buy once, runs locally." />
-  <meta property="og:type" content="website" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terminal Ops — Ready Fighter One</title>
+<meta name="description" content="The ops dashboard built for AI developers — now in 16-bit. Monitor every port, process, and MCP server from a single browser UI." />
 
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --green: #3fb950;
-      --blue: #58a6ff;
-      --purple: #bc8cff;
-      --gold: #e3b341;
-      --red: #f85149;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-    }
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      line-height: 1.6;
-    }
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+  :root {
+    --bg: #0a0d12;
+    --bg-deep: #060810;
+    --surface: #11161e;
+    --surface-2: #161d27;
+    --border: #2a3340;
+    --border-bright: #3b4858;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --dim: #5a6473;
+    --green: #3fb950;
+    --green-deep: #1b6b27;
+    --pink: #ff2e88;
+    --pink-deep: #8a0e44;
+    --cyan: #4ee0ff;
+    --cyan-deep: #0a6a86;
+    --gold: #ffcc33;
+    --gold-deep: #8a6800;
+    --red: #f85149;
+    --purple: #bc8cff;
 
-    /* ── NAV ── */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(13,17,23,0.92);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 56px;
-    }
-    .nav-logo { font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; color: var(--text); }
-    .nav-logo span { color: var(--green); }
-    .nav-links { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--muted); }
-    .nav-links a { color: var(--muted); }
-    .nav-links a:hover { color: var(--text); text-decoration: none; }
-    .nav-cta {
-      background: var(--green);
-      color: #000;
-      font-weight: 700;
-      font-size: 0.8rem;
-      padding: 0.4rem 1rem;
-      border-radius: 6px;
-      letter-spacing: 0.02em;
-    }
-    .nav-cta:hover { opacity: 0.88; text-decoration: none; }
+    --font-pixel: "Press Start 2P", monospace;
+    --font-arcade: "VT323", monospace;
+    --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-    /* ── HERO ── */
-    .hero {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 5rem 2rem 3rem;
-      text-align: center;
-    }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: rgba(63,185,80,0.1);
-      border: 1px solid rgba(63,185,80,0.3);
-      color: var(--green);
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.3rem 0.75rem;
-      border-radius: 20px;
-      margin-bottom: 1.5rem;
-      letter-spacing: 0.04em;
-    }
-    .hero-badge::before { content: "●"; font-size: 0.6rem; }
-    h1 {
-      font-size: clamp(2rem, 5vw, 3.25rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.1;
-      margin-bottom: 1.25rem;
-    }
-    h1 em { color: var(--green); font-style: normal; }
-    .hero-sub {
-      font-size: 1.125rem;
-      color: var(--muted);
-      max-width: 600px;
-      margin: 0 auto 2rem;
-    }
-    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .btn-primary {
-      background: var(--green);
-      color: #000;
-      font-weight: 700;
-      font-size: 0.95rem;
-      padding: 0.75rem 1.75rem;
-      border-radius: 8px;
-      display: inline-block;
-    }
-    .btn-primary:hover { opacity: 0.88; text-decoration: none; }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text);
-      font-weight: 600;
-      font-size: 0.95rem;
-      padding: 0.75rem 1.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      display: inline-block;
-    }
-    .btn-secondary:hover { border-color: var(--muted); text-decoration: none; }
-    .hero-meta {
-      margin-top: 1.5rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
+    /* tweak-controlled toggles */
+    --scanline-opacity: 0.16;
+    --crt-curve: 0;
+    --pixel-headers: 1;
+  }
 
-    /* ── TERMINAL DEMO ── */
-    .demo-wrap {
-      max-width: 900px;
-      margin: 2rem auto 0;
-      padding: 0 2rem;
-    }
-    .terminal {
-      background: #010409;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      font-family: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
-      font-size: 0.78rem;
-    }
-    .terminal-bar {
-      background: #161b22;
-      border-bottom: 1px solid var(--border);
-      padding: 0.6rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .dot-red { background: #ff5f57; }
-    .dot-yellow { background: #ffbd2e; }
-    .dot-green { background: #28c840; }
-    .terminal-url {
-      margin-left: 0.5rem;
-      font-size: 0.72rem;
-      color: var(--muted);
-      flex: 1;
-      text-align: center;
-    }
-    .terminal-body { padding: 1.25rem 1.5rem; line-height: 1.8; }
-    .t-dim { color: #484f58; }
-    .t-green { color: var(--green); }
-    .t-blue { color: var(--blue); }
-    .t-purple { color: var(--purple); }
-    .t-gold { color: var(--gold); }
-    .t-red { color: var(--red); }
-    .t-white { color: var(--text); }
-    .t-muted { color: var(--muted); }
-    .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 1em;
-      background: var(--green);
-      vertical-align: text-bottom;
-      animation: blink 1s step-end infinite;
-    }
-    @keyframes blink { 50% { opacity: 0; } }
-    .badge-ok { background: rgba(63,185,80,0.15); color: var(--green); padding: 0 6px; border-radius: 3px; }
-    .badge-warn { background: rgba(227,179,65,0.15); color: var(--gold); padding: 0 6px; border-radius: 3px; }
-    .badge-mcp { background: rgba(88,166,255,0.12); color: var(--blue); padding: 0 6px; border-radius: 3px; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
+  body { overflow-x: hidden; min-height: 100vh; }
 
-    /* ── SOCIAL PROOF STRIP ── */
-    .proof-strip {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 2rem;
-      margin-top: 3rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 2.5rem;
-      flex-wrap: wrap;
-    }
-    .proof-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); }
-    .proof-item strong { color: var(--text); }
-    .proof-sep { color: var(--border); }
+  /* ── SCANLINE + CRT GLOBAL OVERLAY ── */
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,var(--scanline-opacity)) 0px,
+        rgba(0,0,0,var(--scanline-opacity)) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    mix-blend-mode: multiply;
+  }
+  .crt-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 201;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+  }
 
-    /* ── SECTIONS ── */
-    section { max-width: 960px; margin: 0 auto; padding: 4rem 2rem; }
-    .section-label {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--green);
-      margin-bottom: 0.75rem;
-    }
-    h2 {
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 1rem;
-    }
-    .section-sub { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; max-width: 560px; }
+  /* ── ARCADE HUD (top status bar) ── */
+  .hud {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, #060810 0%, #0a0d12 100%);
+    border-bottom: 2px solid var(--border);
+    padding: 0.6rem 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+  .hud-left { display: flex; gap: 1.5rem; align-items: center; }
+  .hud-right { display: flex; gap: 1.5rem; align-items: center; }
+  .hud-item { display: flex; gap: 0.4rem; align-items: baseline; }
+  .hud-item .lbl { color: var(--muted); }
+  .hud-item .val { color: var(--gold); font-family: var(--font-pixel); }
+  .hud-item .val.p1 { color: var(--green); }
+  .hud-item .val.cyan { color: var(--cyan); }
+  .hud-item .val.pink { color: var(--pink); }
+  .hud-credits { color: var(--text); }
+  .hud-credits b { color: var(--pink); }
 
-    /* ── USE CASES ── */
-    .use-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
-    .use-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-    }
-    .use-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
-    .use-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .use-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.55; }
+  .hud-logo {
+    font-family: var(--font-pixel);
+    color: var(--text);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+  }
+  .hud-logo .term { color: var(--text); }
+  .hud-logo .ops { color: var(--green); text-shadow: 2px 2px 0 var(--green-deep); }
+  .hud-blink { animation: hudBlink 1.2s steps(2) infinite; }
+  @keyframes hudBlink { 50% { opacity: 0; } }
 
-    /* ── TIER TABLE ── */
-    .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    @media (max-width: 680px) { .tiers { grid-template-columns: 1fr; } }
-    .tier-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.75rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-    }
-    .tier-card.featured {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 1px var(--blue), 0 8px 32px rgba(88,166,255,0.08);
-    }
-    .tier-card.diamond-card { border-color: var(--purple); }
-    .tier-badge {
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.2rem 0.6rem;
-      border-radius: 4px;
-      display: inline-block;
-      margin-bottom: 1rem;
-      width: fit-content;
-    }
-    .tier-badge.base { background: rgba(139,148,158,0.15); color: var(--muted); }
-    .tier-badge.mid { background: rgba(88,166,255,0.15); color: var(--blue); }
-    .tier-badge.diamond { background: rgba(188,140,255,0.15); color: var(--purple); }
-    .tier-price { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 0.25rem; }
-    .tier-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
-    .tier-desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
-    .tier-cta {
-      display: block;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.875rem;
-      padding: 0.65rem;
-      border-radius: 7px;
-      margin-bottom: 1.5rem;
-    }
-    .tier-cta.base-cta { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
-    .tier-cta.mid-cta { background: var(--blue); color: #000; }
-    .tier-cta.diamond-cta { background: var(--purple); color: #000; }
-    .tier-cta:hover { opacity: 0.85; text-decoration: none; }
-    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
-    .feature-list li { font-size: 0.82rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: flex-start; }
-    .feature-list li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 0.05rem; }
-    .feature-list li.new::before { content: "+"; color: var(--blue); }
-    .feature-list li.diamond-feat::before { content: "◆"; color: var(--purple); font-size: 0.65rem; }
+  .hud-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  .hud-nav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .hud-nav a:hover {
+    color: var(--cyan);
+    border-color: var(--cyan-deep);
+    background: rgba(78,224,255,0.06);
+  }
 
-    /* ── HOW IT WORKS ── */
-    .steps { display: flex; flex-direction: column; gap: 1px; }
-    .step {
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      gap: 1.5rem;
-      padding: 1.5rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .step:last-child { border-bottom: none; }
-    .step-num {
-      width: 48px;
-      height: 48px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
-    .step p { font-size: 0.85rem; color: var(--muted); }
-    .step code {
-      background: rgba(88,166,255,0.1);
-      color: var(--blue);
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-family: "SF Mono", Consolas, monospace;
-    }
+  /* ── ROUND 1 FIGHT INTRO ── */
+  .intro {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .intro.gone { display: none; }
+  .intro-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,46,136,0.02) 0px, rgba(255,46,136,0.02) 1px, transparent 1px, transparent 3px),
+      radial-gradient(circle at 50% 50%, rgba(255,46,136,0.18), transparent 60%);
+  }
+  .intro-text {
+    position: relative;
+    font-family: var(--font-pixel);
+    font-size: clamp(3rem, 12vw, 9rem);
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    text-shadow: 6px 6px 0 var(--pink-deep), -2px -2px 0 var(--pink);
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  .intro-skip {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-pixel);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    animation: hudBlink 1s steps(2) infinite;
+  }
 
-    /* ── FINAL CTA ── */
-    .cta-section {
-      text-align: center;
-      padding: 5rem 2rem;
-      background: linear-gradient(180deg, transparent 0%, rgba(63,185,80,0.04) 100%);
-      border-top: 1px solid var(--border);
-    }
-    .cta-section h2 { margin-bottom: 1rem; }
-    .cta-section p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
-    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  @keyframes introIn {
+    0%   { opacity: 0; transform: scale(0.2) rotate(-3deg); }
+    20%  { opacity: 1; transform: scale(1.2) rotate(2deg); }
+    40%  { transform: scale(1) rotate(-1deg); }
+    60%  { transform: scale(1.05) rotate(0deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  @keyframes introShake {
+    0%, 100% { transform: translate(0,0); }
+    25% { transform: translate(-6px, 4px); }
+    50% { transform: translate(6px, -4px); }
+    75% { transform: translate(-4px, -2px); }
+  }
+  .intro-text.show {
+    animation: introIn 0.55s cubic-bezier(.3,1.6,.5,1) forwards;
+  }
+  .intro-text.shake {
+    animation: introIn 0.4s cubic-bezier(.3,1.6,.5,1) forwards, introShake 0.2s 0.4s 3 steps(1);
+  }
 
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 1.5rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-    footer a { color: var(--muted); }
-    footer a:hover { color: var(--text); }
-    .footer-links { display: flex; gap: 1.5rem; }
-  </style>
+  /* ── HERO / VS SCREEN ── */
+  .vs-stage {
+    position: relative;
+    padding: 3rem 1.5rem 4rem;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 20%, rgba(255,46,136,0.10), transparent 70%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(78,224,255,0.06), transparent 70%),
+      linear-gradient(180deg, var(--bg-deep) 0%, var(--bg) 100%);
+  }
+  .vs-stage::before {
+    /* horizon perspective grid */
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 40%;
+    background-image:
+      linear-gradient(to right, rgba(78,224,255,0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(78,224,255,0.12) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform: perspective(400px) rotateX(60deg);
+    transform-origin: center top;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 60%, transparent 100%);
+    opacity: 0.55;
+  }
+  .vs-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, var(--bg-deep) 100%);
+    pointer-events: none;
+  }
+  .vs-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .vs-titlebar {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .vs-round {
+    display: inline-block;
+    font-family: var(--font-pixel);
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    padding: 0.4rem 1rem;
+    border: 2px solid var(--gold-deep);
+    background: rgba(255,204,51,0.05);
+  }
+
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 2rem;
+  }
+  @media (max-width: 880px) {
+    .vs-grid { grid-template-columns: 1fr; }
+  }
+
+  /* fighter cards */
+  .fighter {
+    position: relative;
+    background: linear-gradient(180deg, rgba(20,28,40,0.85) 0%, rgba(8,12,18,0.95) 100%);
+    border: 2px solid var(--border-bright);
+    padding: 1.25rem 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .fighter.p1 {
+    border-color: var(--green);
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 3px var(--green-deep),
+      0 0 40px rgba(63,185,80,0.12);
+  }
+  .fighter.p2 {
+    border-color: var(--pink);
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 3px var(--pink-deep),
+      0 0 40px rgba(255,46,136,0.15);
+  }
+  .fighter-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  .fighter.p1 .fighter-label .tag { color: var(--green); }
+  .fighter.p2 .fighter-label .tag { color: var(--pink); }
+  .fighter-label .ready {
+    color: var(--gold);
+    animation: hudBlink 1.2s steps(2) infinite;
+  }
+
+  /* HP bar */
+  .hp {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .hp-bar {
+    position: relative;
+    height: 14px;
+    background: #000;
+    border: 1px solid var(--border-bright);
+    overflow: hidden;
+  }
+  .hp-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--green) 80%, var(--green) 100%);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25), inset 0 2px 0 rgba(255,255,255,0.18);
+  }
+  .fighter.p2 .hp-fill {
+    background: linear-gradient(90deg, var(--gold) 0%, var(--pink) 80%, var(--pink) 100%);
+  }
+  .hp-num {
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    color: var(--text);
+    min-width: 4ch;
+    text-align: right;
+  }
+  .hp-segments {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(to right, rgba(0,0,0,0.35) 1px, transparent 1px);
+    background-size: 10% 100%;
+    pointer-events: none;
+  }
+
+  /* portrait */
+  .portrait {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background:
+      repeating-linear-gradient(45deg, rgba(78,224,255,0.04) 0px, rgba(78,224,255,0.04) 6px, transparent 6px, transparent 12px),
+      linear-gradient(180deg, #1a2434 0%, #0a0f1a 100%);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .fighter.p1 .portrait {
+    background:
+      repeating-linear-gradient(45deg, rgba(63,185,80,0.06) 0px, rgba(63,185,80,0.06) 6px, transparent 6px, transparent 12px),
+      linear-gradient(180deg, #142019 0%, #08120c 100%);
+  }
+  .fighter.p2 .portrait {
+    background:
+      repeating-linear-gradient(45deg, rgba(255,46,136,0.06) 0px, rgba(255,46,136,0.06) 6px, transparent 6px, transparent 12px),
+      linear-gradient(180deg, #1e0d18 0%, #100509 100%);
+  }
+  .portrait-floor {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 22%;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 100%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 16px, transparent 16px, transparent 32px);
+  }
+  .portrait-stagename {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.6rem;
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* terminal-ops sprite */
+  .sprite-wrap {
+    position: relative;
+    height: 78%;
+    display: flex;
+    align-items: flex-end;
+    z-index: 2;
+  }
+  .sprite {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    height: 100%;
+    width: auto;
+    filter: drop-shadow(0 0 12px rgba(63,185,80,0.5)) drop-shadow(0 6px 0 rgba(0,0,0,0.6));
+    animation: bob 1.4s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .sprite-shadow {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    height: 8px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.7), transparent 70%);
+    z-index: 1;
+  }
+
+  /* P2 - dev chaos opponent */
+  .chaos {
+    position: relative;
+    height: 78%;
+    width: 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .chaos-blob {
+    width: 80%;
+    height: 80%;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,46,136,0.8), transparent 50%),
+      radial-gradient(circle at 70% 60%, rgba(188,140,255,0.6), transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(248,81,73,0.5), transparent 60%);
+    filter: blur(2px) contrast(1.4);
+    clip-path: polygon(50% 0%, 80% 10%, 100% 35%, 95% 70%, 70% 95%, 40% 100%, 10% 80%, 0% 50%, 5% 20%, 25% 5%);
+    animation: chaosWarp 3.5s ease-in-out infinite;
+  }
+  @keyframes chaosWarp {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    33% { transform: scale(1.05, 0.95) rotate(2deg); }
+    66% { transform: scale(0.95, 1.05) rotate(-2deg); }
+  }
+  .chaos-glyph {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 0 8px var(--pink);
+    animation: glyphFloat 4s ease-in-out infinite;
+  }
+  .chaos-glyph:nth-child(2) { top: 10%; left: 15%; animation-delay: 0.2s; }
+  .chaos-glyph:nth-child(3) { top: 20%; right: 12%; animation-delay: 0.6s; }
+  .chaos-glyph:nth-child(4) { top: 55%; left: 8%; animation-delay: 1.1s; }
+  .chaos-glyph:nth-child(5) { top: 70%; right: 18%; animation-delay: 1.5s; }
+  .chaos-glyph:nth-child(6) { top: 40%; left: 50%; animation-delay: 0.9s; }
+  .chaos-glyph:nth-child(7) { bottom: 8%; left: 35%; animation-delay: 2s; }
+  @keyframes glyphFloat {
+    0%, 100% { transform: translateY(0) rotate(-3deg); opacity: 0.7; }
+    50% { transform: translateY(-8px) rotate(3deg); opacity: 1; }
+  }
+
+  /* fighter stats */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem 0.9rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+  .stats .row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  .stats .k { color: var(--muted); }
+  .fighter.p1 .stats .v { color: var(--green); }
+  .fighter.p2 .stats .v { color: var(--pink); }
+  .stats .dots { letter-spacing: 0.1em; font-size: 0.7rem; }
+
+  .fighter-tagline {
+    font-family: var(--font-arcade);
+    font-size: 1.25rem;
+    line-height: 1.2;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+  .fighter-tagline em {
+    font-style: normal;
+    color: var(--cyan);
+  }
+  .fighter.p2 .fighter-tagline em { color: var(--gold); }
+
+  /* VS divider */
+  .vs-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    min-width: 100px;
+  }
+  @media (max-width: 880px) {
+    .vs-divider { padding: 1rem 0; }
+  }
+  .vs-text {
+    font-family: var(--font-pixel);
+    font-size: clamp(3rem, 7vw, 5rem);
+    color: var(--gold);
+    text-shadow:
+      4px 4px 0 var(--pink-deep),
+      -2px -2px 0 var(--pink),
+      0 0 24px rgba(255,204,51,0.5);
+    transform: skew(-6deg, 0);
+  }
+  .vs-fight {
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    color: var(--red);
+    letter-spacing: 0.2em;
+    animation: hudBlink 0.6s steps(2) infinite;
+  }
+
+  /* hero CTA strip below VS */
+  .hero-cta {
+    margin-top: 3rem;
+    text-align: center;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-tagline {
+    font-family: var(--font-pixel);
+    font-size: clamp(1.1rem, 2.6vw, 1.7rem);
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  .hero-tagline em {
+    font-style: normal;
+    color: var(--green);
+    text-shadow: 3px 3px 0 var(--green-deep);
+  }
+  .hero-sub {
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .hero-sub b { color: var(--cyan); font-weight: 500; }
+  .hero-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* arcade-style buttons */
+  .btn-arcade {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-pixel);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    padding: 0.95rem 1.5rem;
+    text-decoration: none;
+    border: 2px solid var(--green);
+    background: var(--green);
+    color: #000;
+    box-shadow:
+      4px 4px 0 var(--green-deep),
+      4px 4px 0 1px #000;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn-arcade:hover {
+    transform: translate(2px, 2px);
+    box-shadow:
+      2px 2px 0 var(--green-deep),
+      2px 2px 0 1px #000;
+  }
+  .btn-arcade:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 var(--green-deep);
+  }
+  .btn-arcade.ghost {
+    background: transparent;
+    color: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 4px 4px 0 var(--cyan-deep), 4px 4px 0 1px #000;
+  }
+  .btn-arcade.ghost:hover { box-shadow: 2px 2px 0 var(--cyan-deep), 2px 2px 0 1px #000; }
+  .btn-arcade.pink {
+    background: var(--pink);
+    border-color: var(--pink);
+    box-shadow: 4px 4px 0 var(--pink-deep), 4px 4px 0 1px #000;
+  }
+  .btn-arcade.pink:hover { box-shadow: 2px 2px 0 var(--pink-deep), 2px 2px 0 1px #000; }
+
+  .hero-meta {
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.04em;
+  }
+  .hero-meta b { color: var(--gold); font-weight: 500; }
+
+  /* ── SECTION CHROME ── */
+  section {
+    position: relative;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem 4rem;
+  }
+  .sec-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .sec-title {
+    font-family: var(--font-pixel);
+    font-size: clamp(0.95rem, 2vw, 1.45rem);
+    letter-spacing: 0.05em;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .sec-title .acc {
+    color: var(--gold);
+    text-shadow: 3px 3px 0 var(--gold-deep);
+  }
+  .sec-title .acc-cyan { color: var(--cyan); text-shadow: 3px 3px 0 var(--cyan-deep); }
+  .sec-title .acc-pink { color: var(--pink); text-shadow: 3px 3px 0 var(--pink-deep); }
+  .sec-title .acc-green { color: var(--green); text-shadow: 3px 3px 0 var(--green-deep); }
+
+  .sec-eyebrow {
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    margin-bottom: 0.6rem;
+  }
+  .sec-sub {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 32ch;
+    text-align: right;
+  }
+
+  /* ── MOVELIST (Features) ── */
+  .movelist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .move {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    padding: 1.1rem 1.2rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    transition: transform 0.12s, border-color 0.12s;
+    cursor: default;
+  }
+  .move:hover {
+    transform: translate(-2px, -2px);
+    border-color: var(--cyan);
+    box-shadow: 4px 4px 0 var(--cyan-deep);
+  }
+  .move:hover .move-power-fill {
+    width: var(--pwr, 100%);
+  }
+  .move-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .combo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #000;
+    border: 1px solid var(--border-bright);
+    padding: 0.3rem 0.55rem;
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+  }
+  .combo .arrow { color: var(--cyan); }
+  .combo .plus { color: var(--muted); margin: 0 0.15rem; }
+  .combo .btn { color: var(--pink); }
+  .move-tier {
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .move-tier.mid { color: var(--cyan); }
+  .move-tier.diamond { color: var(--purple); }
+  .move-name {
+    font-family: var(--font-pixel);
+    font-size: 0.85rem;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .move-desc {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .move-power {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    padding-top: 0.4rem;
+  }
+  .move-power-lbl {
+    font-family: var(--font-pixel);
+    font-size: 0.48rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .move-power-bar {
+    height: 8px;
+    background: #000;
+    border: 1px solid var(--border-bright);
+    overflow: hidden;
+  }
+  .move-power-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gold), var(--pink));
+    transition: width 0.6s cubic-bezier(.3,1.2,.5,1);
+  }
+
+  /* ── CHARACTER SELECT (Pricing) ── */
+  .select-frame {
+    background:
+      linear-gradient(180deg, rgba(20,28,40,0.55) 0%, rgba(8,12,18,0.85) 100%);
+    border: 2px solid var(--border-bright);
+    padding: 1.5rem;
+    position: relative;
+  }
+  .select-frame::before {
+    content: "SELECT YOUR FIGHTER";
+    position: absolute;
+    top: -0.7rem;
+    left: 1rem;
+    background: var(--bg);
+    padding: 0.1rem 0.6rem;
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    color: var(--gold);
+    letter-spacing: 0.12em;
+  }
+  .select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 880px) {
+    .select-grid { grid-template-columns: 1fr; }
+  }
+  .pick {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    padding: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: all 0.15s;
+  }
+  .pick:hover { transform: translateY(-3px); }
+  .pick.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent), 0 0 32px var(--accent-glow);
+  }
+  .pick.featured { border-color: var(--accent-soft); }
+  .pick[data-tier="base"] { --accent: var(--green); --accent-glow: rgba(63,185,80,0.25); --accent-soft: var(--green-deep); }
+  .pick[data-tier="mid"] { --accent: var(--cyan); --accent-glow: rgba(78,224,255,0.25); --accent-soft: var(--cyan-deep); }
+  .pick[data-tier="diamond"] { --accent: var(--purple); --accent-glow: rgba(188,140,255,0.25); --accent-soft: #4f3680; }
+
+  .pick-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pick-tag {
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--accent);
+    background: rgba(0,0,0,0.4);
+  }
+  .pick-slot {
+    font-family: var(--font-pixel);
+    font-size: 0.48rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+  }
+  .pick-port {
+    aspect-ratio: 1 / 1;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 6px, transparent 6px, transparent 12px),
+      linear-gradient(180deg, #1a2434 0%, #0a0f1a 100%);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .pick-port::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center bottom, var(--accent-glow), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .pick:hover .pick-port::after,
+  .pick.active .pick-port::after { opacity: 1; }
+  .pick-port img {
+    image-rendering: pixelated;
+    width: 60%;
+    height: auto;
+    filter: drop-shadow(0 0 8px var(--accent));
+    position: relative;
+    z-index: 1;
+  }
+  .pick-port .level {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.5rem;
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    z-index: 2;
+  }
+  .pick-port .badge-num {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    font-family: var(--font-pixel);
+    font-size: 0.7rem;
+    color: var(--accent);
+    z-index: 2;
+  }
+
+  .pick-name {
+    font-family: var(--font-pixel);
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+  }
+  .pick-price {
+    font-family: var(--font-pixel);
+    font-size: 1.4rem;
+    color: var(--accent);
+    text-shadow: 3px 3px 0 var(--accent-soft);
+    letter-spacing: 0.02em;
+  }
+  .pick-price small { font-size: 0.5rem; color: var(--muted); margin-left: 0.4rem; letter-spacing: 0.1em; }
+
+  .pick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 0.7rem;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--border);
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+  }
+  .stat-row .k { color: var(--muted); }
+  .stat-row .v { color: var(--text); letter-spacing: 0.1em; }
+  .stat-row .v .full { color: var(--accent); }
+  .stat-row .v .empty { color: var(--dim); }
+
+  .pick-special {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px dashed var(--border);
+    padding-top: 0.6rem;
+  }
+  .pick-special b {
+    display: block;
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 0.3rem;
+  }
+
+  .pick-cta {
+    display: block;
+    text-align: center;
+    font-family: var(--font-pixel);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding: 0.7rem;
+    background: var(--accent);
+    color: #000;
+    text-decoration: none;
+    border: 2px solid var(--accent);
+    box-shadow: 3px 3px 0 var(--accent-soft);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .pick-cta:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--accent-soft);
+  }
+
+  /* ── STAGE SELECT (Use cases) ── */
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.85rem;
+  }
+  .stage {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .stage:hover { transform: translateY(-3px); border-color: var(--gold); }
+  .stage-thumb {
+    position: absolute;
+    inset: 0;
+    background: var(--stage-bg, #11161e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .stage-thumb::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 2px, transparent 2px, transparent 4px),
+      linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%);
+  }
+  .stage-thumb svg { width: 75%; height: auto; opacity: 0.85; position: relative; z-index: 1; }
+  .stage-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 0.7rem 0.85rem 0.8rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.92) 60%);
+  }
+  .stage-name {
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    color: var(--text);
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+  .stage-meta {
+    margin-top: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .stage-tag {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 2;
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    color: var(--gold);
+    background: rgba(0,0,0,0.7);
+    border: 1px solid var(--gold-deep);
+    padding: 0.2rem 0.4rem;
+    letter-spacing: 0.1em;
+  }
+  .stage-diff {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    z-index: 2;
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── TRAINING MODE (Setup) ── */
+  .training {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .train {
+    background: var(--surface);
+    border-left: 4px solid var(--green);
+    padding: 1.1rem 1.2rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .train-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+  }
+  .train-num .btn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    box-shadow: 0 2px 0 var(--gold-deep);
+  }
+  .train h3 {
+    font-family: var(--font-pixel);
+    font-size: 0.75rem;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+  }
+  .train p {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .train code {
+    background: #000;
+    color: var(--cyan);
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    border: 1px solid var(--cyan-deep);
+  }
+
+  /* ── PRESS START FINAL CTA ── */
+  .final {
+    position: relative;
+    margin-top: 3rem;
+    padding: 5rem 1.5rem 6rem;
+    text-align: center;
+    background:
+      radial-gradient(ellipse at center, rgba(255,46,136,0.12), transparent 70%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    border-top: 2px solid var(--border);
+    overflow: hidden;
+  }
+  .final::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,204,51,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,204,51,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, #000 0%, transparent 70%);
+  }
+  .final-inner { position: relative; z-index: 2; max-width: 720px; margin: 0 auto; }
+  .final-title {
+    font-family: var(--font-pixel);
+    font-size: clamp(1.4rem, 4vw, 2.6rem);
+    line-height: 1.4;
+    color: var(--text);
+    letter-spacing: 0.03em;
+  }
+  .final-title .pulse {
+    color: var(--gold);
+    text-shadow: 4px 4px 0 var(--gold-deep);
+    animation: hudBlink 1.4s steps(2) infinite;
+  }
+  .final-sub {
+    margin-top: 1.5rem;
+    font-family: var(--font-arcade);
+    font-size: 1.5rem;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+  }
+  .final-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 1.5rem 2rem;
+    background: var(--bg-deep);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .foot-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .foot-credits { font-family: var(--font-pixel); font-size: 0.55rem; letter-spacing: 0.08em; color: var(--muted); }
+  .foot-credits b { color: var(--green); }
+  .foot-links { display: flex; gap: 1.25rem; }
+  .foot-links a { color: var(--muted); text-decoration: none; }
+  .foot-links a:hover { color: var(--text); }
+  .game-over {
+    text-align: center;
+    margin-top: 1rem;
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    color: var(--dim);
+    letter-spacing: 0.18em;
+  }
+
+  /* ── PIXEL TOGGLE: when pixel headers off, swap to body font ── */
+  .no-pixel .sec-title,
+  .no-pixel .hero-tagline,
+  .no-pixel .final-title,
+  .no-pixel .pick-name,
+  .no-pixel .move-name,
+  .no-pixel .train h3,
+  .no-pixel .vs-text {
+    font-family: var(--font-body);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+  .no-pixel .vs-text { letter-spacing: -0.04em; transform: none; }
+
+  /* PALETTE VARIATIONS */
+  body.palette-neon {
+    --bg: #0a0410;
+    --bg-deep: #050208;
+    --surface: #150724;
+    --surface-2: #1f0b30;
+    --border: #3a1d52;
+    --border-bright: #5b2d80;
+    --green: #00ff88;
+    --green-deep: #006e3a;
+    --pink: #ff2e88;
+    --cyan: #00e5ff;
+  }
+  body.palette-dusk {
+    --bg: #0f0a18;
+    --bg-deep: #08050f;
+    --surface: #1a1228;
+    --surface-2: #221735;
+    --border: #2e2244;
+    --border-bright: #423458;
+    --gold: #ffb547;
+    --gold-deep: #6e3d00;
+    --pink: #ff5dab;
+    --pink-deep: #6e0a3a;
+    --cyan: #b07bff;
+    --green: #6ad9a2;
+  }
+  body.palette-mono {
+    --bg: #0d1117;
+    --bg-deep: #060810;
+    --green: #3fb950;
+    --pink: #3fb950;
+    --cyan: #3fb950;
+    --gold: #3fb950;
+    --green-deep: #1b6b27;
+    --pink-deep: #1b6b27;
+    --cyan-deep: #1b6b27;
+    --gold-deep: #1b6b27;
+  }
+
+  /* Tweaks panel mount */
+  #tweaks-root { position: fixed; z-index: 300; }
+
+  /* responsive HUD */
+  @media (max-width: 720px) {
+    .hud { grid-template-columns: auto auto; row-gap: 0.5rem; }
+    .hud-nav { grid-column: 1 / -1; justify-content: center; flex-wrap: wrap; gap: 0.6rem; }
+    .hud-left .hud-item:nth-child(n+2),
+    .hud-right .hud-item:nth-child(n+2) { display: none; }
+  }
+</style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <span class="nav-logo">Terminal<span>Monitor</span></span>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#setup">Setup</a>
-    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank">GitHub</a>
-  </div>
-  <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="nav-cta">Download Free</a>
-</nav>
-
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-badge">v2.0.0 — Live on Gumroad</div>
-  <h1>The ops dashboard<br>built for <em>AI developers</em></h1>
-  <p class="hero-sub">
-    Monitor every port, process, MCP server, and resource on your machine from a single browser UI.
-    Runs locally on port 8084. No cloud. No telemetry. No subscription.
-  </p>
-  <div class="hero-actions">
-    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="btn-primary">Download Free →</a>
-    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" class="btn-secondary">View on GitHub</a>
-  </div>
-  <p class="hero-meta">Base tier is free forever · Mid $29 one-time · Diamond $79 one-time</p>
+<!-- ROUND 1 / FIGHT intro overlay -->
+<div class="intro" id="intro" onclick="skipIntro()">
+  <div class="intro-bg"></div>
+  <div class="intro-text" id="introText">ROUND 1</div>
+  <div class="intro-skip">CLICK / PRESS ANY KEY TO SKIP</div>
 </div>
 
-<!-- TERMINAL DEMO -->
-<div class="demo-wrap">
-  <div class="terminal">
-    <div class="terminal-bar">
-      <div class="dot dot-red"></div>
-      <div class="dot dot-yellow"></div>
-      <div class="dot dot-green"></div>
-      <div class="terminal-url">localhost:8084 — Terminal Monitor v2.0.0</div>
+<!-- ARCADE HUD -->
+<header class="hud">
+  <div class="hud-left">
+    <div class="hud-logo">
+      <span class="term">TERMINAL</span><span class="ops">OPS</span>
     </div>
-    <div class="terminal-body">
-      <div><span class="t-dim">PORTS</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">PROCESSES</span>&nbsp;&nbsp;<span class="t-blue">MCP</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">RESOURCES</span>&nbsp;&nbsp;<span class="t-purple">MEMORY</span>&nbsp;&nbsp;&nbsp;<span class="t-dim">HISTORY</span></div>
-      <div>&nbsp;</div>
-      <div><span class="t-muted">●</span> <span class="badge-mcp">MCP</span> &nbsp;<span class="t-white">claude-desktop</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:5555</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
-      <div><span class="t-muted">●</span> <span class="badge-mcp">MCP</span> &nbsp;<span class="t-white">filesystem-mcp</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8765</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
-      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">NeuroLinked Brain</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8000</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
-      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">Agent Hub</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8090</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
-      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">Job Agent</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8082</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-warn">starting</span></div>
-      <div>&nbsp;</div>
-      <div><span class="t-muted">CPU</span> <span class="t-green">▓▓▓▓▓░░░░░░░░░░░</span> <span class="t-white">34%</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">RAM</span> <span class="t-gold">▓▓▓▓▓▓▓▓▓░░░░░░░</span> <span class="t-white">61%</span></div>
-      <div>&nbsp;</div>
-      <div><span class="t-dim">›</span> <span class="t-green">brain sync</span> <span class="t-muted">— last push 42s ago · 1,247 entries stored · Diamond tier</span> <span class="cursor"></span></div>
+    <div class="hud-item"><span class="lbl">1UP</span><span class="val p1">000,000</span></div>
+    <div class="hud-item"><span class="lbl">HI</span><span class="val">999,999</span></div>
+  </div>
+
+  <nav class="hud-nav">
+    <a href="#movelist">MOVESET</a>
+    <a href="#fighters">FIGHTERS</a>
+    <a href="#stages">STAGES</a>
+    <a href="#training">TRAINING</a>
+    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" rel="noopener">GITHUB</a>
+  </nav>
+
+  <div class="hud-right">
+    <div class="hud-item"><span class="lbl">VER</span><span class="val cyan">2.0.1</span></div>
+    <div class="hud-item hud-credits"><span class="lbl">CREDIT</span><b>FREE</b><span class="hud-blink">●</span></div>
+  </div>
+</header>
+
+<!-- HERO / VS SCREEN -->
+<div class="vs-stage">
+  <div class="vs-inner">
+    <div class="vs-titlebar">
+      <span class="vs-round">★ ROUND 1 — START ★</span>
+    </div>
+
+    <div class="vs-grid">
+
+      <!-- P1: TERMINAL OPS -->
+      <div class="fighter p1">
+        <div class="fighter-label">
+          <span class="tag">P1 — TERMINAL OPS</span>
+          <span class="ready">READY</span>
+        </div>
+
+        <div class="hp">
+          <div class="hp-bar">
+            <div class="hp-fill" style="width: 100%;"></div>
+            <div class="hp-segments"></div>
+          </div>
+          <span class="hp-num">100</span>
+        </div>
+
+        <div class="portrait">
+          <span class="portrait-stagename">STAGE: LOCALHOST :8084</span>
+          <div class="portrait-floor"></div>
+          <div class="sprite-wrap">
+            <img src="assets/terminal-ops-sprite.png" class="sprite" alt="Terminal Ops sprite" />
+            <div class="sprite-shadow"></div>
+          </div>
+        </div>
+
+        <div class="fighter-tagline">
+          One dashboard. <em>Every port, process, MCP, and agent</em> on your machine.
+        </div>
+
+        <div class="stats">
+          <div class="row"><span class="k">TYPE</span><span class="v">OPS</span></div>
+          <div class="row"><span class="k">CLASS</span><span class="v">LOCAL</span></div>
+          <div class="row"><span class="k">PORT</span><span class="v">:8084</span></div>
+          <div class="row"><span class="k">TELEMETRY</span><span class="v">NONE</span></div>
+          <div class="row"><span class="k">SPEED</span><span class="v dots">●●●●●</span></div>
+          <div class="row"><span class="k">PRIVACY</span><span class="v dots">●●●●●</span></div>
+        </div>
+      </div>
+
+      <!-- VS DIVIDER -->
+      <div class="vs-divider">
+        <div class="vs-text">VS</div>
+        <div class="vs-fight">FIGHT!</div>
+      </div>
+
+      <!-- P2: DEV CHAOS -->
+      <div class="fighter p2">
+        <div class="fighter-label">
+          <span class="tag">P2 — DEV CHAOS</span>
+          <span class="ready">CPU</span>
+        </div>
+
+        <div class="hp">
+          <div class="hp-bar">
+            <div class="hp-fill" style="width: 100%;"></div>
+            <div class="hp-segments"></div>
+          </div>
+          <span class="hp-num">100</span>
+        </div>
+
+        <div class="portrait">
+          <span class="portrait-stagename">STAGE: SEVEN TERMINAL TABS</span>
+          <div class="portrait-floor"></div>
+          <div class="chaos">
+            <div class="chaos-blob"></div>
+            <span class="chaos-glyph">$_</span>
+            <span class="chaos-glyph">:5555</span>
+            <span class="chaos-glyph">EADDR</span>
+            <span class="chaos-glyph">kill -9</span>
+            <span class="chaos-glyph">3000?</span>
+            <span class="chaos-glyph">ECONN</span>
+            <span class="chaos-glyph">PID??</span>
+          </div>
+        </div>
+
+        <div class="fighter-tagline">
+          Port conflicts, dead MCP servers, <em>17 tabs of htop</em>, and "what's on :3000?"
+        </div>
+
+        <div class="stats">
+          <div class="row"><span class="k">TYPE</span><span class="v">ENTROPY</span></div>
+          <div class="row"><span class="k">CLASS</span><span class="v">EVERYWHERE</span></div>
+          <div class="row"><span class="k">SPAWNS</span><span class="v">INFINITE</span></div>
+          <div class="row"><span class="k">NOISE</span><span class="v">HIGH</span></div>
+          <div class="row"><span class="k">SPEED</span><span class="v dots">●●○○○</span></div>
+          <div class="row"><span class="k">SANITY</span><span class="v dots">●○○○○</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Hero CTA -->
+    <div class="hero-cta">
+      <h1 class="hero-tagline">
+        The ops dashboard built for<br /><em>AI developers</em>.
+      </h1>
+      <p class="hero-sub">
+        Monitor every port, process, MCP server, and resource from a single browser UI.
+        Runs locally on <b>port 8084</b>. No cloud. No telemetry. No subscription.
+      </p>
+      <div class="hero-actions">
+        <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" rel="noopener" class="btn-arcade">
+          ▶ START — FREE
+        </a>
+        <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" rel="noopener" class="btn-arcade ghost">
+          VIEW SOURCE
+        </a>
+      </div>
+      <p class="hero-meta">
+        BASE tier <b>FREE</b> forever · MID <b>$29</b> one-time · DIAMOND <b>$79</b> one-time · Docker ready
+      </p>
     </div>
   </div>
 </div>
 
-<!-- PROOF STRIP -->
-<div class="proof-strip">
-  <div class="proof-item">
-    <strong>180</strong> tests passing
+<!-- MOVELIST / FEATURES -->
+<section id="movelist">
+  <div class="sec-head">
+    <div>
+      <div class="sec-eyebrow">★ COMMAND LIST</div>
+      <h2 class="sec-title">MOVESET — <span class="acc">KNOW YOUR</span> <span class="acc-cyan">FIGHTER</span></h2>
+    </div>
+    <p class="sec-sub">Every move executes locally. No combos sent home. Hover to charge.</p>
   </div>
-  <div class="proof-sep">·</div>
-  <div class="proof-item">
-    <strong>v2.0.0</strong> shipped
-  </div>
-  <div class="proof-sep">·</div>
-  <div class="proof-item">
-    <strong>Docker</strong> ready
-  </div>
-  <div class="proof-sep">·</div>
-  <div class="proof-item">
-    <strong>Offline</strong> license — no phone-home
-  </div>
-  <div class="proof-sep">·</div>
-  <div class="proof-item">
-    <img src="https://img.shields.io/github/stars/annointedfrom/terminal-monitor?style=flat&color=3fb950&labelColor=161b22" alt="GitHub stars" style="height:20px;vertical-align:middle;" />
-  </div>
-</div>
 
-<!-- USE CASES -->
-<section id="features">
-  <div class="section-label">Who it's for</div>
-  <h2>Built for developers who run AI stacks</h2>
-  <p class="section-sub">If you run Claude, MCP servers, Ollama, or local agents — you already need this.</p>
-  <div class="use-cases">
-    <div class="use-card">
-      <div class="use-icon">🤖</div>
-      <h3>AI / MCP Developers</h3>
-      <p>See every MCP server on your machine at a glance. Health checks, port conflicts, process PIDs — all in one view. Stop tabbing between terminals.</p>
+  <div class="movelist">
+    <div class="move" style="--pwr: 95%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">↓</span><span class="arrow">↘</span><span class="arrow">→</span><span class="plus">+</span><span class="btn">SCAN</span></span>
+        <span class="move-tier">LV.1</span>
+      </div>
+      <div class="move-name">PORT SWEEP</div>
+      <div class="move-desc">Live scan of every open port on the machine. Health checks, owner PIDs, kill controls. The opening jab of your kit.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
     </div>
-    <div class="use-card">
-      <div class="use-icon">⚙️</div>
-      <h3>Local Agent Builders</h3>
-      <p>Running Agent Hub, Job Agent, SocialHub, and NeuroLinked simultaneously? Terminal Monitor shows every agent's health and lets you kill or restart from the UI.</p>
+
+    <div class="move" style="--pwr: 88%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">←</span><span class="arrow">↓</span><span class="arrow">→</span><span class="plus">+</span><span class="btn">PROC</span></span>
+        <span class="move-tier">LV.1</span>
+      </div>
+      <div class="move-name">PROCESS SUPLEX</div>
+      <div class="move-desc">Real-time process monitor with one-tap SIGTERM / SIGKILL. Sort by RAM, CPU, owner. Finds the zombie eating your fans.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
     </div>
-    <div class="use-card">
-      <div class="use-icon">🖥️</div>
-      <h3>DevOps / Power Users</h3>
-      <p>CPU, RAM, GPU graphs, shell history, alert thresholds, and proactive browser notifications when a resource spikes. All running at localhost:8084.</p>
+
+    <div class="move" style="--pwr: 100%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">↑</span><span class="arrow">↑</span><span class="plus">+</span><span class="btn">MCP</span></span>
+        <span class="move-tier">LV.2</span>
+      </div>
+      <div class="move-name">MCP CALL-OUT</div>
+      <div class="move-desc">Auto-detects every MCP server on your box. Claude-desktop, filesystem-mcp, custom builds — all listed with live status and reachable URL.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
     </div>
-    <div class="use-card">
-      <div class="use-icon">🔒</div>
-      <h3>Privacy-First Teams</h3>
-      <p>No cloud. No telemetry. No SaaS subscription. License is an offline RS256 JWT — verified locally, no API calls home. Docker-ready for air-gapped environments.</p>
+
+    <div class="move" style="--pwr: 80%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">↓</span><span class="arrow">↓</span><span class="plus">+</span><span class="btn">RES</span></span>
+        <span class="move-tier">LV.1</span>
+      </div>
+      <div class="move-name">RESOURCE BURST</div>
+      <div class="move-desc">CPU / RAM / GPU graphs with configurable alert thresholds. Browser-native notifications when something spikes — no Slack bot required.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="move" style="--pwr: 92%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">→</span><span class="arrow">←</span><span class="plus">+</span><span class="btn">MEM</span></span>
+        <span class="move-tier mid">LV.3 — MID</span>
+      </div>
+      <div class="move-name">MEMORY GRAPPLE</div>
+      <div class="move-desc">SQLite-backed memory server. Notes, commands, chat history — searchable, auto-imported from shell on startup, injectable into AI chat context.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="move" style="--pwr: 100%;">
+      <div class="move-head">
+        <span class="combo"><span class="arrow">↓</span><span class="arrow">↘</span><span class="arrow">→</span><span class="arrow">↓</span><span class="arrow">↘</span><span class="arrow">→</span><span class="plus">+</span><span class="btn">SYNC</span></span>
+        <span class="move-tier diamond">LV.MAX — DIAMOND</span>
+      </div>
+      <div class="move-name">BRAIN SYNC ULTRA</div>
+      <div class="move-desc">NeuroLinked brain sync. Memory entries auto-pushed to your local AI brain every 60s. Pattern insights, working-memory stats, Diamond-only routes.</div>
+      <div class="move-power">
+        <span class="move-power-lbl">PWR</span>
+        <div class="move-power-bar"><div class="move-power-fill"></div></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- PRICING -->
-<section id="pricing">
-  <div class="section-label">Pricing</div>
-  <h2>One-time price. Yours forever.</h2>
-  <p class="section-sub">No subscriptions. License key delivered within 24 hours of purchase. Works offline.</p>
-  <div class="tiers">
-
-    <!-- BASE -->
-    <div class="tier-card">
-      <div class="tier-badge base">Base</div>
-      <div class="tier-price">Free<span></span></div>
-      <div class="tier-desc">Free forever. No license key needed.</div>
-      <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="tier-cta base-cta">Download Free</a>
-      <ul class="feature-list">
-        <li>Port scanner with health checks</li>
-        <li>Process monitor + kill controls</li>
-        <li>MCP server detection</li>
-        <li>CPU / RAM / GPU resource graphs</li>
-        <li>Shell history viewer</li>
-        <li>Alert thresholds (CPU, RAM, GPU)</li>
-        <li>Browser notifications</li>
-        <li>Auto-refresh every 10s</li>
-        <li>Docker-ready</li>
-        <li>Config wizard (first-run setup)</li>
-      </ul>
+<!-- CHARACTER SELECT / PRICING -->
+<section id="fighters">
+  <div class="sec-head">
+    <div>
+      <div class="sec-eyebrow">★ TIER 1 — TIER 3</div>
+      <h2 class="sec-title">PICK YOUR <span class="acc-pink">FIGHTER</span></h2>
     </div>
-
-    <!-- MID -->
-    <div class="tier-card featured">
-      <div class="tier-badge mid">Mid</div>
-      <div class="tier-price">$29<span>&nbsp;one-time</span></div>
-      <div class="tier-desc">Everything in Base, plus persistent memory and plugin support.</div>
-      <a href="https://thseeding.gumroad.com/l/cwtip" target="_blank" class="tier-cta mid-cta">Get Mid →</a>
-      <ul class="feature-list">
-        <li>Everything in Base</li>
-        <li class="new">Memory server — SQLite store for notes, commands, chat history</li>
-        <li class="new">MEMORY tab with search, browse, delete</li>
-        <li class="new">Shell history auto-imported into memory on startup</li>
-        <li class="new">AI chat context injection from memory</li>
-        <li class="new">Plugin architecture — load custom scan/router plugins via RS256 keys</li>
-        <li class="new">In-dashboard update notifications</li>
-        <li class="new">Ollama model pull from dashboard</li>
-      </ul>
-    </div>
-
-    <!-- DIAMOND -->
-    <div class="tier-card diamond-card">
-      <div class="tier-badge diamond">Diamond</div>
-      <div class="tier-price">$79<span>&nbsp;one-time</span></div>
-      <div class="tier-desc">Everything in Mid, plus NeuroLinked brain sync.</div>
-      <a href="https://thseeding.gumroad.com/l/lgubie" target="_blank" class="tier-cta diamond-cta">Get Diamond →</a>
-      <ul class="feature-list">
-        <li>Everything in Mid</li>
-        <li class="diamond-feat">NeuroLinked brain sync — memory entries auto-pushed to your local AI brain every 60s</li>
-        <li class="diamond-feat">Memory insights endpoint — patterns, load, working memory stats</li>
-        <li class="diamond-feat">Diamond-only brain sync routes</li>
-        <li class="diamond-feat">Priority support</li>
-      </ul>
-    </div>
-
+    <p class="sec-sub">One-time price. License delivered in 24h. Verified offline via RS256 JWT — no phone-home.</p>
   </div>
-  <p style="text-align:center;margin-top:1.5rem;font-size:0.8rem;color:var(--muted);">
-    License key emailed within 24h of purchase · Works air-gapped · Verified locally via RS256 JWT
-  </p>
+
+  <div class="select-frame">
+    <div class="select-grid" id="selectGrid">
+
+      <!-- BASE -->
+      <div class="pick active" data-tier="base" onclick="pickTier(this)">
+        <div class="pick-head">
+          <span class="pick-tag">BASE</span>
+          <span class="pick-slot">SLOT 01</span>
+        </div>
+        <div class="pick-port">
+          <span class="level">LV.01</span>
+          <span class="badge-num">00</span>
+          <img src="assets/terminal-ops-sprite.png" alt="" />
+        </div>
+        <div>
+          <div class="pick-name">SCANNER<br />KID</div>
+          <div class="pick-price" style="margin-top: 0.4rem;">FREE<small>FOREVER</small></div>
+        </div>
+        <div class="pick-stats">
+          <div class="stat-row"><span class="k">PORTS</span><span class="v"><span class="full">●●●●</span><span class="empty">●</span></span></div>
+          <div class="stat-row"><span class="k">PROCESS</span><span class="v"><span class="full">●●●●</span><span class="empty">●</span></span></div>
+          <div class="stat-row"><span class="k">MCP</span><span class="v"><span class="full">●●●</span><span class="empty">●●</span></span></div>
+          <div class="stat-row"><span class="k">RESOURCE</span><span class="v"><span class="full">●●●●</span><span class="empty">●</span></span></div>
+          <div class="stat-row"><span class="k">MEMORY</span><span class="v"><span class="empty">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">BRAIN</span><span class="v"><span class="empty">●●●●●</span></span></div>
+        </div>
+        <div class="pick-special">
+          <b>SIGNATURE MOVE</b>
+          Port scanner, process kill, MCP detection, CPU/RAM/GPU graphs, browser alerts, Docker ready — and you pay nothing.
+        </div>
+        <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" rel="noopener" class="pick-cta">▶ INSERT COIN — FREE</a>
+      </div>
+
+      <!-- MID -->
+      <div class="pick" data-tier="mid" onclick="pickTier(this)">
+        <div class="pick-head">
+          <span class="pick-tag">MID</span>
+          <span class="pick-slot">SLOT 02</span>
+        </div>
+        <div class="pick-port">
+          <span class="level">LV.03</span>
+          <span class="badge-num">29</span>
+          <img src="assets/terminal-ops-sprite.png" alt="" />
+        </div>
+        <div>
+          <div class="pick-name">MEMORY<br />MASTER</div>
+          <div class="pick-price" style="margin-top: 0.4rem;">$29<small>ONE-TIME</small></div>
+        </div>
+        <div class="pick-stats">
+          <div class="stat-row"><span class="k">PORTS</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">PROCESS</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">MCP</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">RESOURCE</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">MEMORY</span><span class="v"><span class="full">●●●●</span><span class="empty">●</span></span></div>
+          <div class="stat-row"><span class="k">BRAIN</span><span class="v"><span class="empty">●●●●●</span></span></div>
+        </div>
+        <div class="pick-special">
+          <b>UNLOCKS</b>
+          SQLite memory server, MEMORY tab with search, shell-history auto-import, AI chat context injection, plugin architecture, Ollama pulls from UI.
+        </div>
+        <a href="https://thseeding.gumroad.com/l/cwtip" target="_blank" rel="noopener" class="pick-cta">▶ INSERT COIN — $29</a>
+      </div>
+
+      <!-- DIAMOND -->
+      <div class="pick" data-tier="diamond" onclick="pickTier(this)">
+        <div class="pick-head">
+          <span class="pick-tag">DIAMOND</span>
+          <span class="pick-slot">SLOT 03</span>
+        </div>
+        <div class="pick-port">
+          <span class="level">LV.MAX</span>
+          <span class="badge-num">79</span>
+          <img src="assets/terminal-ops-sprite.png" alt="" />
+        </div>
+        <div>
+          <div class="pick-name">BRAIN<br />SYNCER</div>
+          <div class="pick-price" style="margin-top: 0.4rem;">$79<small>ONE-TIME</small></div>
+        </div>
+        <div class="pick-stats">
+          <div class="stat-row"><span class="k">PORTS</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">PROCESS</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">MCP</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">RESOURCE</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">MEMORY</span><span class="v"><span class="full">●●●●●</span></span></div>
+          <div class="stat-row"><span class="k">BRAIN</span><span class="v"><span class="full">●●●●●</span></span></div>
+        </div>
+        <div class="pick-special">
+          <b>HIDDEN ULT</b>
+          NeuroLinked brain sync every 60s, memory-insights endpoint, pattern + working-memory stats, Diamond-only sync routes, priority support.
+        </div>
+        <a href="https://thseeding.gumroad.com/l/lgubie" target="_blank" rel="noopener" class="pick-cta">▶ INSERT COIN — $79</a>
+      </div>
+
+    </div>
+  </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section id="setup">
-  <div class="section-label">Setup</div>
-  <h2>Running in under 2 minutes</h2>
-  <p class="section-sub">Python 3.11+ required. Or use Docker — no Python install needed.</p>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div>
-        <h3>Clone &amp; install</h3>
-        <p><code>git clone https://github.com/annointedfrom/terminal-monitor</code> then <code>pip install -r requirements.txt</code></p>
+<!-- STAGE SELECT / USE CASES -->
+<section id="stages">
+  <div class="sec-head">
+    <div>
+      <div class="sec-eyebrow">★ BATTLEGROUNDS</div>
+      <h2 class="sec-title">STAGE SELECT — <span class="acc-cyan">CHOOSE YOUR</span> <span class="acc">ARENA</span></h2>
+    </div>
+    <p class="sec-sub">Whichever stack you fight on, Terminal Ops trains here.</p>
+  </div>
+
+  <div class="stage-grid">
+    <div class="stage" style="--stage-bg: linear-gradient(180deg, #1a2c1f 0%, #050a07 100%);">
+      <div class="stage-thumb">
+        <svg viewBox="0 0 200 140" fill="none">
+          <rect x="20" y="50" width="160" height="80" fill="#1a3322" stroke="#3fb950" stroke-width="2"/>
+          <rect x="32" y="62" width="50" height="56" fill="#0a1e10" stroke="#3fb950" stroke-width="1"/>
+          <rect x="92" y="62" width="50" height="56" fill="#0a1e10" stroke="#3fb950" stroke-width="1"/>
+          <rect x="152" y="62" width="20" height="56" fill="#0a1e10" stroke="#3fb950" stroke-width="1"/>
+          <circle cx="40" cy="72" r="3" fill="#3fb950"/>
+          <circle cx="100" cy="72" r="3" fill="#3fb950"/>
+          <circle cx="160" cy="72" r="3" fill="#ffcc33"/>
+          <rect x="38" y="86" width="30" height="3" fill="#3fb950" opacity="0.5"/>
+          <rect x="98" y="86" width="30" height="3" fill="#3fb950" opacity="0.5"/>
+          <rect x="38" y="96" width="20" height="3" fill="#3fb950" opacity="0.3"/>
+          <rect x="98" y="96" width="20" height="3" fill="#3fb950" opacity="0.3"/>
+          <text x="100" y="44" font-family="VT323" font-size="14" fill="#3fb950" text-anchor="middle">MCP CLUSTER</text>
+        </svg>
+      </div>
+      <span class="stage-tag">STAGE 1</span>
+      <span class="stage-diff">★☆☆☆</span>
+      <div class="stage-label">
+        <div class="stage-name">AI / MCP LABS</div>
+        <div class="stage-meta">Every MCP server on your box, in one view. Health, ports, PIDs. Stop tabbing.</div>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div>
-        <h3>First-run setup</h3>
-        <p>Run <code>python setup.py</code> to generate your <code>config.yaml</code>. Add your services, alert thresholds, and license key.</p>
+
+    <div class="stage" style="--stage-bg: linear-gradient(180deg, #2c1f1a 0%, #0a0705 100%);">
+      <div class="stage-thumb">
+        <svg viewBox="0 0 200 140" fill="none">
+          <rect x="30" y="30" width="40" height="40" fill="#33221a" stroke="#ffcc33" stroke-width="2"/>
+          <rect x="80" y="30" width="40" height="40" fill="#33221a" stroke="#ffcc33" stroke-width="2"/>
+          <rect x="130" y="30" width="40" height="40" fill="#33221a" stroke="#ffcc33" stroke-width="2"/>
+          <rect x="55" y="85" width="90" height="35" fill="#1a1208" stroke="#ff2e88" stroke-width="2"/>
+          <line x1="50" y1="70" x2="80" y2="85" stroke="#ffcc33" stroke-width="1"/>
+          <line x1="100" y1="70" x2="100" y2="85" stroke="#ffcc33" stroke-width="1"/>
+          <line x1="150" y1="70" x2="120" y2="85" stroke="#ffcc33" stroke-width="1"/>
+          <circle cx="50" cy="50" r="4" fill="#ffcc33"/>
+          <circle cx="100" cy="50" r="4" fill="#ffcc33"/>
+          <circle cx="150" cy="50" r="4" fill="#ffcc33"/>
+          <text x="100" y="108" font-family="VT323" font-size="12" fill="#ff2e88" text-anchor="middle">AGENT HUB</text>
+        </svg>
+      </div>
+      <span class="stage-tag">STAGE 2</span>
+      <span class="stage-diff">★★☆☆</span>
+      <div class="stage-label">
+        <div class="stage-name">AGENT FORGE</div>
+        <div class="stage-meta">Agent Hub, Job Agent, NeuroLinked all up at once? Watch every one's vitals.</div>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div>
-        <h3>Start the dashboard</h3>
-        <p><code>uvicorn termmon.main:app --port 8084</code> — then open <code>localhost:8084</code> in your browser.</p>
+
+    <div class="stage" style="--stage-bg: linear-gradient(180deg, #1a1a2c 0%, #050510 100%);">
+      <div class="stage-thumb">
+        <svg viewBox="0 0 200 140" fill="none">
+          <rect x="20" y="100" width="40" height="20" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="20" y="80" width="40" height="20" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="20" y="60" width="40" height="20" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="80" y="100" width="40" height="20" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="80" y="60" width="40" height="40" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="140" y="100" width="40" height="20" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="140" y="40" width="40" height="60" fill="#0a0f1e" stroke="#4ee0ff" stroke-width="1"/>
+          <rect x="25" y="105" width="30" height="10" fill="#4ee0ff" opacity="0.4"/>
+          <rect x="25" y="85" width="20" height="10" fill="#4ee0ff" opacity="0.3"/>
+          <rect x="85" y="65" width="30" height="30" fill="#4ee0ff" opacity="0.5"/>
+          <rect x="145" y="45" width="30" height="50" fill="#ffcc33" opacity="0.6"/>
+          <text x="100" y="30" font-family="VT323" font-size="12" fill="#4ee0ff" text-anchor="middle">CPU / RAM / GPU</text>
+        </svg>
+      </div>
+      <span class="stage-tag">STAGE 3</span>
+      <span class="stage-diff">★★★☆</span>
+      <div class="stage-label">
+        <div class="stage-name">DEVOPS ARENA</div>
+        <div class="stage-meta">Live resource graphs, alert thresholds, browser-native pings when something spikes.</div>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div>
-        <h3>Or use Docker</h3>
-        <p><code>docker-compose up</code> — mounts your config and data directory, handles everything else. Works on Mac, Windows, and Linux.</p>
+
+    <div class="stage" style="--stage-bg: linear-gradient(180deg, #2c1a26 0%, #0a0510 100%);">
+      <div class="stage-thumb">
+        <svg viewBox="0 0 200 140" fill="none">
+          <rect x="60" y="50" width="80" height="70" fill="#1a0a14" stroke="#ff2e88" stroke-width="2"/>
+          <rect x="80" y="35" width="40" height="25" rx="20" rx="20" fill="none" stroke="#ff2e88" stroke-width="2"/>
+          <rect x="90" y="75" width="20" height="20" fill="#ff2e88" opacity="0.4"/>
+          <circle cx="100" cy="85" r="3" fill="#ffcc33"/>
+          <line x1="100" y1="88" x2="100" y2="100" stroke="#ffcc33" stroke-width="2"/>
+          <text x="100" y="28" font-family="VT323" font-size="11" fill="#ff2e88" text-anchor="middle">AIR-GAPPED</text>
+          <text x="100" y="135" font-family="VT323" font-size="10" fill="#888" text-anchor="middle">no phone home</text>
+        </svg>
+      </div>
+      <span class="stage-tag">STAGE 4</span>
+      <span class="stage-diff">★★★★</span>
+      <div class="stage-label">
+        <div class="stage-name">PRIVACY VAULT</div>
+        <div class="stage-meta">Offline RS256 JWT license. Zero telemetry. Docker-ready for air-gapped infra.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FINAL CTA -->
-<div class="cta-section">
-  <h2>Stop tabbing between terminals</h2>
-  <p>One dashboard. Every agent, port, process, and resource. Free to start.</p>
-  <div class="cta-actions">
-    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="btn-primary">Download Free →</a>
-    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" class="btn-secondary">Star on GitHub</a>
+<!-- TRAINING MODE / SETUP -->
+<section id="training">
+  <div class="sec-head">
+    <div>
+      <div class="sec-eyebrow">★ TRAINING MODE</div>
+      <h2 class="sec-title">RUNNING IN <span class="acc-green">UNDER 2 MIN</span></h2>
+    </div>
+    <p class="sec-sub">Python 3.11+ required. Or use Docker — no Python install needed.</p>
+  </div>
+
+  <div class="training">
+    <div class="train">
+      <div class="train-num"><span class="btn">A</span> COMMAND 01</div>
+      <h3>CLONE &amp; INSTALL</h3>
+      <p><code>git clone …/terminal-monitor</code> then <code>pip install -r requirements.txt</code>. Standard Python flow.</p>
+    </div>
+    <div class="train">
+      <div class="train-num"><span class="btn">B</span> COMMAND 02</div>
+      <h3>FIRST-RUN SETUP</h3>
+      <p>Run <code>python setup.py</code> to generate <code>config.yaml</code>. Drop in your services, alert thresholds, and license key.</p>
+    </div>
+    <div class="train">
+      <div class="train-num"><span class="btn">X</span> COMMAND 03</div>
+      <h3>START THE DASH</h3>
+      <p><code>uvicorn termmon.main:app --port 8084</code>, then open <code>localhost:8084</code>. You're in.</p>
+    </div>
+    <div class="train">
+      <div class="train-num"><span class="btn">Y</span> COMMAND 04</div>
+      <h3>OR USE DOCKER</h3>
+      <p><code>docker-compose up</code> mounts config + data dir and handles the rest. Mac, Windows, Linux.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA / PRESS START -->
+<div class="final">
+  <div class="final-inner">
+    <h2 class="final-title">
+      STOP TABBING.<br /><span class="pulse">PRESS START.</span>
+    </h2>
+    <p class="final-sub">One dashboard. Every agent, port, process, and resource — free to begin.</p>
+    <div class="final-actions">
+      <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" rel="noopener" class="btn-arcade">
+        ▶ INSERT COIN — FREE
+      </a>
+      <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" rel="noopener" class="btn-arcade pink">
+        ★ STAR ON GITHUB
+      </a>
+    </div>
   </div>
 </div>
 
 <!-- FOOTER -->
 <footer>
-  <span>Terminal Monitor · v2.0.0 · Built by <a href="https://portfolio-indol-nine-54.vercel.app" target="_blank">Angel Vaquera Jr</a></span>
-  <div class="footer-links">
-    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank">GitHub</a>
-    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank">Gumroad</a>
-    <a href="https://portfolio-indol-nine-54.vercel.app" target="_blank">Portfolio</a>
+  <div class="foot-inner">
+    <div class="foot-credits">
+      © 2026 · TERMINAL OPS V2.0.1 · BUILT BY <b>ANGEL VAQUERA JR</b>
+    </div>
+    <div class="foot-links">
+      <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" rel="noopener">Gumroad</a>
+      <a href="https://portfolio-indol-nine-54.vercel.app" target="_blank" rel="noopener">Portfolio</a>
+    </div>
   </div>
+  <div class="game-over">▼ GAME OVER ▼ CONTINUE? PRESS ANY KEY ▼ THANK YOU FOR PLAYING ▼</div>
 </footer>
+
+<!-- CRT overlays (kept above everything but pointer-events:none) -->
+<div class="crt-overlay"></div>
+<div class="crt-vignette"></div>
+
+<!-- Tweaks panel mount -->
+<div id="tweaks-root"></div>
+
+<!-- ── INTRO ANIMATION + INTERACTIONS ── -->
+<script>
+  // Defaults consumed by Tweaks panel
+  window.__TERMINAL_OPS_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "palette": "default",
+    "scanlines": true,
+    "pixelHeaders": true,
+    "alwaysReplayIntro": false
+  }/*EDITMODE-END*/;
+
+  // INTRO: ROUND 1 -> FIGHT! -> fade
+  const intro = document.getElementById('intro');
+  const introText = document.getElementById('introText');
+  let introDone = false;
+
+  function runIntro() {
+    introDone = false;
+    intro.classList.remove('gone');
+    introText.textContent = 'ROUND 1';
+    introText.classList.remove('show', 'shake');
+    // force reflow then play
+    void introText.offsetWidth;
+    introText.classList.add('show');
+
+    setTimeout(() => {
+      if (introDone) return;
+      introText.textContent = 'FIGHT!';
+      introText.style.color = 'var(--red)';
+      introText.classList.remove('show');
+      void introText.offsetWidth;
+      introText.classList.add('shake');
+    }, 1100);
+
+    setTimeout(() => {
+      if (introDone) return;
+      finishIntro();
+    }, 2200);
+  }
+
+  function finishIntro() {
+    introDone = true;
+    intro.style.transition = 'opacity 0.4s';
+    intro.style.opacity = '0';
+    setTimeout(() => intro.classList.add('gone'), 420);
+  }
+
+  function skipIntro() { finishIntro(); }
+
+  document.addEventListener('keydown', (e) => {
+    if (!introDone) skipIntro();
+  }, { once: false });
+
+  // run on load
+  window.addEventListener('load', () => {
+    setTimeout(runIntro, 120);
+  });
+
+  // CHARACTER SELECT picker
+  function pickTier(el) {
+    document.querySelectorAll('#selectGrid .pick').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // expose replay for Tweaks
+  window.__replayIntro = runIntro;
+
+  // expose state setters for Tweaks panel
+  window.__applyTweaks = (t) => {
+    document.body.classList.remove('palette-default','palette-neon','palette-dusk','palette-mono');
+    document.body.classList.add('palette-' + t.palette);
+    document.documentElement.style.setProperty('--scanline-opacity', t.scanlines ? '0.16' : '0');
+    document.body.classList.toggle('no-pixel', !t.pixelHeaders);
+  };
+
+  // Apply defaults immediately so first paint is correct
+  window.__applyTweaks(window.__TERMINAL_OPS_DEFAULTS);
+</script>
+
+<!-- React + Tweaks Panel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tweaks-app.jsx"></script>
 
 </body>
 </html>
