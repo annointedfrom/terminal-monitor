@@ -531,6 +531,7 @@ class SetupRequest(BaseModel):
     title: str = "Ops Dashboard"
     default_model: str = "ops-brain"
     training_threshold: int = 100
+    terminal_enabled: bool = True
     brain_enabled: bool = False
     brain_url: str = "http://localhost:8000"
     services: list[dict] = []
@@ -666,6 +667,9 @@ async def terminal_ws(websocket: WebSocket):
     if info is None or info.tier < Tier.MID:
         await websocket.close(code=1008, reason="license_required")
         return
+    if not get_settings().dashboard.terminal_enabled:
+        await websocket.close(code=1008, reason="terminal_disabled")
+        return
     await websocket.accept()
     try:
         while True:
@@ -706,6 +710,11 @@ async def setup_page():
 
 @app.post("/api/setup")
 async def setup_post(req: SetupRequest, request: Request):
+    if _CONFIG_PATH.exists():
+        current = getattr(request.app.state, "license", None)
+        posted = verify_license(req.license_key)
+        if current is None and posted is None:
+            raise HTTPException(status_code=403, detail="setup_locked")
     from termmon.config import (
         Settings, DashboardConfig, BrainConfig, ServiceConfig, AlertsConfig,
     )
@@ -714,6 +723,7 @@ async def setup_post(req: SetupRequest, request: Request):
             title=req.title,
             default_model=req.default_model,
             training_threshold=req.training_threshold,
+            terminal_enabled=req.terminal_enabled,
         ),
         brain=BrainConfig(enabled=req.brain_enabled, url=req.brain_url),
         services=[

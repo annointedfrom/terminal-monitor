@@ -45,7 +45,6 @@ def verify_license(key_string: str) -> LicenseInfo | None:
             key_string,
             PUBLIC_KEY,
             algorithms=["RS256"],
-            options={"verify_exp": False},
         )
         if payload.get("sub") != "terminal-monitor":
             return None
@@ -73,7 +72,6 @@ def verify_plugin_key(token: str, plugin_name: str) -> bool:
             token,
             PUBLIC_KEY,
             algorithms=["RS256"],
-            options={"verify_exp": False},
         )
         return payload.get("sub") == f"termmon-plugin-{plugin_name}"
     except Exception:

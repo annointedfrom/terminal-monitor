@@ -13,6 +13,7 @@ class DashboardConfig(BaseModel):
     title: str = "Ops Dashboard"
     default_model: str = "ops-brain"
     training_threshold: int = 100
+    terminal_enabled: bool = True
 
 
 class BrainConfig(BaseModel):

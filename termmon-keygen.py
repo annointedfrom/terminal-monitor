@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 
 import jwt
 
@@ -48,6 +48,7 @@ def issue_key(tier: str, email: str, private_key_path: pathlib.Path) -> str:
             "email": email,
             "issued_at": date.today().isoformat(),
             "sub": "terminal-monitor",
+            "exp": datetime(2099, 1, 1, tzinfo=timezone.utc),
         },
         private_pem,
         algorithm="RS256",
@@ -62,6 +63,7 @@ def issue_plugin_key(plugin_name: str, email: str, private_key_path: pathlib.Pat
             "sub": f"termmon-plugin-{plugin_name}",
             "email": email,
             "issued_at": date.today().isoformat(),
+            "exp": datetime(2099, 1, 1, tzinfo=timezone.utc),
         },
         private_pem,
         algorithm="RS256",
