@@ -1,6 +1,6 @@
-{
-  "latest": "2.0.0",
-  "changelog": "Plugin architecture, custom memory server (MID+), brain sync (Diamond), MEMORY tab",
-  "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.0.0/terminal-monitor-v2.0.0.zip",
-  "min_tier": "base"
+﻿{
+    "download_url":  "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.0.1/terminal-monitor-v2.0.1.zip",
+    "changelog":  "Security patch: JWT expiry enforced, setup endpoint locked after first run, terminal disable flag added",
+    "latest":  "2.0.1",
+    "min_tier":  "base"
 }
