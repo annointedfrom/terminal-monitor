@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terminal Monitor — Real-Time Ops Dashboard for AI Developers</title>
+  <meta name="description" content="Monitor every port, process, MCP server, and resource on your machine from a single browser UI. Free tier available. Built for AI developers." />
+  <meta property="og:title" content="Terminal Monitor — Ops Dashboard for AI Devs" />
+  <meta property="og:description" content="Port scanner · Process monitor · MCP detection · Memory server · NeuroLinked brain sync. Ships with Docker. Buy once, runs locally." />
+  <meta property="og:type" content="website" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+      --gold: #e3b341;
+      --red: #f85149;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo { font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; color: var(--text); }
+    .nav-logo span { color: var(--green); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-cta {
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .nav-cta:hover { opacity: 0.88; text-decoration: none; }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(63,185,80,0.1);
+      border: 1px solid rgba(63,185,80,0.3);
+      color: var(--green);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.04em;
+    }
+    .hero-badge::before { content: "●"; font-size: 0.6rem; }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    h1 em { color: var(--green); font-style: normal; }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.75rem 1.75rem;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    .btn-primary:hover { opacity: 0.88; text-decoration: none; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.75rem 1.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: inline-block;
+    }
+    .btn-secondary:hover { border-color: var(--muted); text-decoration: none; }
+    .hero-meta {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── TERMINAL DEMO ── */
+    .demo-wrap {
+      max-width: 900px;
+      margin: 2rem auto 0;
+      padding: 0 2rem;
+    }
+    .terminal {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      font-family: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 0.78rem;
+    }
+    .terminal-bar {
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #28c840; }
+    .terminal-url {
+      margin-left: 0.5rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      flex: 1;
+      text-align: center;
+    }
+    .terminal-body { padding: 1.25rem 1.5rem; line-height: 1.8; }
+    .t-dim { color: #484f58; }
+    .t-green { color: var(--green); }
+    .t-blue { color: var(--blue); }
+    .t-purple { color: var(--purple); }
+    .t-gold { color: var(--gold); }
+    .t-red { color: var(--red); }
+    .t-white { color: var(--text); }
+    .t-muted { color: var(--muted); }
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      background: var(--green);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .badge-ok { background: rgba(63,185,80,0.15); color: var(--green); padding: 0 6px; border-radius: 3px; }
+    .badge-warn { background: rgba(227,179,65,0.15); color: var(--gold); padding: 0 6px; border-radius: 3px; }
+    .badge-mcp { background: rgba(88,166,255,0.12); color: var(--blue); padding: 0 6px; border-radius: 3px; }
+
+    /* ── SOCIAL PROOF STRIP ── */
+    .proof-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      margin-top: 3rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .proof-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); }
+    .proof-item strong { color: var(--text); }
+    .proof-sep { color: var(--border); }
+
+    /* ── SECTIONS ── */
+    section { max-width: 960px; margin: 0 auto; padding: 4rem 2rem; }
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+    .section-sub { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; max-width: 560px; }
+
+    /* ── USE CASES ── */
+    .use-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .use-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .use-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .use-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .use-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── TIER TABLE ── */
+    .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 680px) { .tiers { grid-template-columns: 1fr; } }
+    .tier-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .tier-card.featured {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px var(--blue), 0 8px 32px rgba(88,166,255,0.08);
+    }
+    .tier-card.diamond-card { border-color: var(--purple); }
+    .tier-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 1rem;
+      width: fit-content;
+    }
+    .tier-badge.base { background: rgba(139,148,158,0.15); color: var(--muted); }
+    .tier-badge.mid { background: rgba(88,166,255,0.15); color: var(--blue); }
+    .tier-badge.diamond { background: rgba(188,140,255,0.15); color: var(--purple); }
+    .tier-price { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 0.25rem; }
+    .tier-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .tier-desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .tier-cta {
+      display: block;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.875rem;
+      padding: 0.65rem;
+      border-radius: 7px;
+      margin-bottom: 1.5rem;
+    }
+    .tier-cta.base-cta { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .tier-cta.mid-cta { background: var(--blue); color: #000; }
+    .tier-cta.diamond-cta { background: var(--purple); color: #000; }
+    .tier-cta:hover { opacity: 0.85; text-decoration: none; }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+    .feature-list li { font-size: 0.82rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: flex-start; }
+    .feature-list li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 0.05rem; }
+    .feature-list li.new::before { content: "+"; color: var(--blue); }
+    .feature-list li.diamond-feat::before { content: "◆"; color: var(--purple); font-size: 0.65rem; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: flex; flex-direction: column; gap: 1px; }
+    .step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 48px;
+      height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .step p { font-size: 0.85rem; color: var(--muted); }
+    .step code {
+      background: rgba(88,166,255,0.1);
+      color: var(--blue);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: "SF Mono", Consolas, monospace;
+    }
+
+    /* ── FINAL CTA ── */
+    .cta-section {
+      text-align: center;
+      padding: 5rem 2rem;
+      background: linear-gradient(180deg, transparent 0%, rgba(63,185,80,0.04) 100%);
+      border-top: 1px solid var(--border);
+    }
+    .cta-section h2 { margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
+    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+    .footer-links { display: flex; gap: 1.5rem; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">Terminal<span>Monitor</span></span>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#setup">Setup</a>
+    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank">GitHub</a>
+  </div>
+  <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="nav-cta">Download Free</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">v2.0.0 — Live on Gumroad</div>
+  <h1>The ops dashboard<br>built for <em>AI developers</em></h1>
+  <p class="hero-sub">
+    Monitor every port, process, MCP server, and resource on your machine from a single browser UI.
+    Runs locally on port 8084. No cloud. No telemetry. No subscription.
+  </p>
+  <div class="hero-actions">
+    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="btn-primary">Download Free →</a>
+    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" class="btn-secondary">View on GitHub</a>
+  </div>
+  <p class="hero-meta">Base tier is free forever · Mid $29 one-time · Diamond $79 one-time</p>
+</div>
+
+<!-- TERMINAL DEMO -->
+<div class="demo-wrap">
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+      <div class="terminal-url">localhost:8084 — Terminal Monitor v2.0.0</div>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-dim">PORTS</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">PROCESSES</span>&nbsp;&nbsp;<span class="t-blue">MCP</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">RESOURCES</span>&nbsp;&nbsp;<span class="t-purple">MEMORY</span>&nbsp;&nbsp;&nbsp;<span class="t-dim">HISTORY</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-muted">●</span> <span class="badge-mcp">MCP</span> &nbsp;<span class="t-white">claude-desktop</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:5555</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
+      <div><span class="t-muted">●</span> <span class="badge-mcp">MCP</span> &nbsp;<span class="t-white">filesystem-mcp</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8765</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
+      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">NeuroLinked Brain</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8000</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
+      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">Agent Hub</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8090</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-ok">healthy</span></div>
+      <div><span class="t-muted">●</span> <span class="t-dim">SVC</span> &nbsp;&nbsp;<span class="t-white">Job Agent</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">:8082</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge-warn">starting</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-muted">CPU</span> <span class="t-green">▓▓▓▓▓░░░░░░░░░░░</span> <span class="t-white">34%</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-muted">RAM</span> <span class="t-gold">▓▓▓▓▓▓▓▓▓░░░░░░░</span> <span class="t-white">61%</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-dim">›</span> <span class="t-green">brain sync</span> <span class="t-muted">— last push 42s ago · 1,247 entries stored · Diamond tier</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROOF STRIP -->
+<div class="proof-strip">
+  <div class="proof-item">
+    <strong>180</strong> tests passing
+  </div>
+  <div class="proof-sep">·</div>
+  <div class="proof-item">
+    <strong>v2.0.0</strong> shipped
+  </div>
+  <div class="proof-sep">·</div>
+  <div class="proof-item">
+    <strong>Docker</strong> ready
+  </div>
+  <div class="proof-sep">·</div>
+  <div class="proof-item">
+    <strong>Offline</strong> license — no phone-home
+  </div>
+  <div class="proof-sep">·</div>
+  <div class="proof-item">
+    <img src="https://img.shields.io/github/stars/annointedfrom/terminal-monitor?style=flat&color=3fb950&labelColor=161b22" alt="GitHub stars" style="height:20px;vertical-align:middle;" />
+  </div>
+</div>
+
+<!-- USE CASES -->
+<section id="features">
+  <div class="section-label">Who it's for</div>
+  <h2>Built for developers who run AI stacks</h2>
+  <p class="section-sub">If you run Claude, MCP servers, Ollama, or local agents — you already need this.</p>
+  <div class="use-cases">
+    <div class="use-card">
+      <div class="use-icon">🤖</div>
+      <h3>AI / MCP Developers</h3>
+      <p>See every MCP server on your machine at a glance. Health checks, port conflicts, process PIDs — all in one view. Stop tabbing between terminals.</p>
+    </div>
+    <div class="use-card">
+      <div class="use-icon">⚙️</div>
+      <h3>Local Agent Builders</h3>
+      <p>Running Agent Hub, Job Agent, SocialHub, and NeuroLinked simultaneously? Terminal Monitor shows every agent's health and lets you kill or restart from the UI.</p>
+    </div>
+    <div class="use-card">
+      <div class="use-icon">🖥️</div>
+      <h3>DevOps / Power Users</h3>
+      <p>CPU, RAM, GPU graphs, shell history, alert thresholds, and proactive browser notifications when a resource spikes. All running at localhost:8084.</p>
+    </div>
+    <div class="use-card">
+      <div class="use-icon">🔒</div>
+      <h3>Privacy-First Teams</h3>
+      <p>No cloud. No telemetry. No SaaS subscription. License is an offline RS256 JWT — verified locally, no API calls home. Docker-ready for air-gapped environments.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>One-time price. Yours forever.</h2>
+  <p class="section-sub">No subscriptions. License key delivered within 24 hours of purchase. Works offline.</p>
+  <div class="tiers">
+
+    <!-- BASE -->
+    <div class="tier-card">
+      <div class="tier-badge base">Base</div>
+      <div class="tier-price">Free<span></span></div>
+      <div class="tier-desc">Free forever. No license key needed.</div>
+      <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="tier-cta base-cta">Download Free</a>
+      <ul class="feature-list">
+        <li>Port scanner with health checks</li>
+        <li>Process monitor + kill controls</li>
+        <li>MCP server detection</li>
+        <li>CPU / RAM / GPU resource graphs</li>
+        <li>Shell history viewer</li>
+        <li>Alert thresholds (CPU, RAM, GPU)</li>
+        <li>Browser notifications</li>
+        <li>Auto-refresh every 10s</li>
+        <li>Docker-ready</li>
+        <li>Config wizard (first-run setup)</li>
+      </ul>
+    </div>
+
+    <!-- MID -->
+    <div class="tier-card featured">
+      <div class="tier-badge mid">Mid</div>
+      <div class="tier-price">$29<span>&nbsp;one-time</span></div>
+      <div class="tier-desc">Everything in Base, plus persistent memory and plugin support.</div>
+      <a href="https://thseeding.gumroad.com/l/cwtip" target="_blank" class="tier-cta mid-cta">Get Mid →</a>
+      <ul class="feature-list">
+        <li>Everything in Base</li>
+        <li class="new">Memory server — SQLite store for notes, commands, chat history</li>
+        <li class="new">MEMORY tab with search, browse, delete</li>
+        <li class="new">Shell history auto-imported into memory on startup</li>
+        <li class="new">AI chat context injection from memory</li>
+        <li class="new">Plugin architecture — load custom scan/router plugins via RS256 keys</li>
+        <li class="new">In-dashboard update notifications</li>
+        <li class="new">Ollama model pull from dashboard</li>
+      </ul>
+    </div>
+
+    <!-- DIAMOND -->
+    <div class="tier-card diamond-card">
+      <div class="tier-badge diamond">Diamond</div>
+      <div class="tier-price">$79<span>&nbsp;one-time</span></div>
+      <div class="tier-desc">Everything in Mid, plus NeuroLinked brain sync.</div>
+      <a href="https://thseeding.gumroad.com/l/lgubie" target="_blank" class="tier-cta diamond-cta">Get Diamond →</a>
+      <ul class="feature-list">
+        <li>Everything in Mid</li>
+        <li class="diamond-feat">NeuroLinked brain sync — memory entries auto-pushed to your local AI brain every 60s</li>
+        <li class="diamond-feat">Memory insights endpoint — patterns, load, working memory stats</li>
+        <li class="diamond-feat">Diamond-only brain sync routes</li>
+        <li class="diamond-feat">Priority support</li>
+      </ul>
+    </div>
+
+  </div>
+  <p style="text-align:center;margin-top:1.5rem;font-size:0.8rem;color:var(--muted);">
+    License key emailed within 24h of purchase · Works air-gapped · Verified locally via RS256 JWT
+  </p>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="setup">
+  <div class="section-label">Setup</div>
+  <h2>Running in under 2 minutes</h2>
+  <p class="section-sub">Python 3.11+ required. Or use Docker — no Python install needed.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h3>Clone &amp; install</h3>
+        <p><code>git clone https://github.com/annointedfrom/terminal-monitor</code> then <code>pip install -r requirements.txt</code></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h3>First-run setup</h3>
+        <p>Run <code>python setup.py</code> to generate your <code>config.yaml</code>. Add your services, alert thresholds, and license key.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h3>Start the dashboard</h3>
+        <p><code>uvicorn termmon.main:app --port 8084</code> — then open <code>localhost:8084</code> in your browser.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h3>Or use Docker</h3>
+        <p><code>docker-compose up</code> — mounts your config and data directory, handles everything else. Works on Mac, Windows, and Linux.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="cta-section">
+  <h2>Stop tabbing between terminals</h2>
+  <p>One dashboard. Every agent, port, process, and resource. Free to start.</p>
+  <div class="cta-actions">
+    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank" class="btn-primary">Download Free →</a>
+    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank" class="btn-secondary">Star on GitHub</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>Terminal Monitor · v2.0.0 · Built by <a href="https://portfolio-indol-nine-54.vercel.app" target="_blank">Angel Vaquera Jr</a></span>
+  <div class="footer-links">
+    <a href="https://github.com/annointedfrom/terminal-monitor" target="_blank">GitHub</a>
+    <a href="https://thseeding.gumroad.com/l/anilts" target="_blank">Gumroad</a>
+    <a href="https://portfolio-indol-nine-54.vercel.app" target="_blank">Portfolio</a>
+  </div>
+</footer>
+
+</body>
+</html>
