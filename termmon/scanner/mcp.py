@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import shlex
 import socket
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -76,6 +78,76 @@ def _hub_services(config_path: Path = _HUB_CONFIG_PATH) -> list[dict]:
             "type": "service",
         })
     return results
+
+
+def start_mcp_server(name: str) -> dict:
+    """Start a named MCP server using only its config-file command — never a client-supplied command."""
+    servers = _read_mcp_config(_settings_path())
+    if name in servers:
+        config = servers[name]
+        command = config.get("command", "")
+        args = [str(a) for a in config.get("args", [])]
+        if not command:
+            return {"ok": False, "error": "No command configured for this server"}
+        try:
+            proc = subprocess.Popen(
+                [command] + args,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return {"ok": True, "pid": proc.pid}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    for svc in _hub_services():
+        if svc["name"] == name:
+            cmd_str = svc.get("command", "")
+            if not cmd_str:
+                return {"ok": False, "error": "No start_command configured"}
+            try:
+                # hub commands are full Windows cmd strings — use shell=True safely
+                # (command comes from local config file, not from the HTTP client)
+                proc = subprocess.Popen(
+                    cmd_str,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    cwd=svc.get("work_dir"),
+                )
+                return {"ok": True, "pid": proc.pid}
+            except Exception as exc:
+                return {"ok": False, "error": str(exc)}
+
+    return {"ok": False, "error": f"No server named '{name}' found in config"}
+
+
+def kill_mcp_server(name: str) -> dict:
+    """Terminate a running MCP server by name using its config-derived search token."""
+    servers = _read_mcp_config(_settings_path())
+    search_token = name
+    if name in servers:
+        config = servers[name]
+        for arg in reversed(config.get("args", [])):
+            if not str(arg).startswith("-") and len(str(arg)) > 2:
+                search_token = str(arg)
+                break
+
+    running, pid = _find_process(search_token)
+    if not running or pid is None:
+        # Try hub services by port
+        for svc in _hub_services():
+            if svc["name"] == name and svc.get("pid"):
+                pid = svc["pid"]
+                break
+    if pid is None:
+        return {"ok": False, "error": "Server not found or not running"}
+    try:
+        psutil.Process(pid).terminate()
+        return {"ok": True, "pid": pid}
+    except psutil.NoSuchProcess:
+        return {"ok": False, "error": "Process already gone"}
+    except psutil.AccessDenied:
+        return {"ok": False, "error": "Access denied"}
 
 
 def scan_mcp(settings_path: Optional[Path] = None) -> list[dict]:

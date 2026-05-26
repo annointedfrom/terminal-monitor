@@ -132,6 +132,29 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
 .term-btn { background:#0a0a14; border:1px solid #1a1a28; color:#5a5a8a; font-size:8px; padding:1px 5px; border-radius:2px; cursor:pointer; white-space:nowrap; }
 .term-btn:hover { background:#10102a; color:#8a8aaa; }
 .mcp-row { display:grid; grid-template-columns:1fr 80px 100px 55px 65px; gap:4px; align-items:center; margin-bottom:5px; }
+/* ── Shell selector ─────────────────────────────────────────── */
+#shell-selector { display:flex; gap:3px; padding:3px 8px; border-bottom:1px solid #0a1a0a; flex-shrink:0; background:#060606; }
+.shell-btn { background:#0a0a0a; border:1px solid #1a2a1a; color:#3a5a3a; font-family:monospace; font-size:8px; padding:2px 7px; border-radius:2px; cursor:pointer; letter-spacing:1px; }
+.shell-btn:hover { color:#7abf7a; border-color:#2a5a2a; }
+.shell-btn.active { color:#2ecc71; border-color:#2a5a2a; background:#0a1a0a; }
+/* ── Phantom character ──────────────────────────────────────── */
+#phantom-trigger { margin-left:auto; padding:4px 8px; font-size:8px; color:#1a0a0a; cursor:default; letter-spacing:2px; user-select:none; }
+#phantom-trigger.armed { color:#3a0a0a; }
+#pane-phantom { display:none; }
+.ph-card { background:linear-gradient(135deg,#0a0000 0%,#150010 100%); border:1px solid #3a0a0a; border-radius:4px; padding:16px; margin-bottom:10px; }
+.ph-name { color:#e74c3c; font-size:22px; font-weight:bold; letter-spacing:4px; text-shadow:0 0 12px #e74c3c88; }
+.ph-class { color:#8a2020; font-size:9px; letter-spacing:3px; margin-top:2px; }
+.ph-stat-row { display:flex; gap:16px; margin:10px 0 6px; }
+.ph-stat { display:flex; flex-direction:column; }
+.ph-stat-k { color:#3a1a1a; font-size:7px; letter-spacing:1px; }
+.ph-stat-v { color:#e74c3c; font-size:11px; font-weight:bold; }
+.ph-divider { border:none; border-top:1px solid #2a0a0a; margin:8px 0; }
+.ph-abilities { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px; }
+.ph-ability { background:#0d0000; border:1px solid #2a0808; border-radius:3px; padding:8px; cursor:pointer; transition:border-color 0.15s; }
+.ph-ability:hover { border-color:#e74c3c; }
+.ph-ability-name { color:#e74c3c; font-size:9px; letter-spacing:1px; margin-bottom:3px; }
+.ph-ability-desc { color:#5a2a2a; font-size:8px; line-height:1.4; }
+.ph-output { background:#050000; border:1px solid #1a0808; border-radius:2px; padding:8px; margin-top:8px; font-size:8px; color:#bf7a7a; line-height:1.6; white-space:pre-wrap; min-height:60px; }
 </style>
 </head>
 <body>
@@ -184,6 +207,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
   <div class="tab" onclick="switchTab('energy')">ENERGY</div>
   <div class="tab" data-tier="mid" onclick="switchTab('ai')">AI</div>
   <div class="tab" data-tier="mid" onclick="switchTab('memory')">MEMORY</div>
+  <div id="phantom-trigger" title="..." onclick="_phantomClick()">&#9608;&#9608;&#9608;</div>
 </div>
 
 <div id="tab-content">
@@ -219,6 +243,7 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
         <span id="training-count-lbl">&#8212; pairs</span>
         <div id="training-prog-bg"><div id="training-prog-fill"></div></div>
         <span id="training-ready-badge">&#10003; ready to fine-tune</span>
+        <a id="training-export-btn" href="/api/training/export" download="ops-brain-training.jsonl" data-tier="diamond" style="display:none;font-size:7px;color:#8888cc;background:#0a0a14;border:1px solid #1a1a2a;padding:2px 7px;border-radius:2px;text-decoration:none;">&#8615; EXPORT</a>
       </div>
     </div>
     <div id="ai-chat-pane">
@@ -235,13 +260,47 @@ body { background: #0d0d0d; color: #ccc; font-family: monospace; font-size: 12px
       </div>
     </div>
     <div id="ai-term-pane">
+      <div id="shell-selector">
+        <span style="color:#2a4a2a;font-size:8px;letter-spacing:1px;margin-right:4px;">SHELL</span>
+        <button class="shell-btn active" id="shell-btn-ps" onclick="setShell('powershell')">PS</button>
+        <button class="shell-btn" id="shell-btn-cmd" onclick="setShell('cmd')">CMD</button>
+        <button class="shell-btn" id="shell-btn-bash" onclick="setShell('bash')">BASH</button>
+      </div>
       <div id="term-output"></div>
       <div id="term-input-bar">
         <span id="term-prompt">PS&gt;</span>
-        <input id="term-input" type="text" placeholder="powershell command&#8230;" autocomplete="off" spellcheck="false" />
+        <input id="term-input" type="text" placeholder="command&#8230;" autocomplete="off" spellcheck="false" />
         <button class="term-run-btn" onclick="runTerminalInput()">RUN</button>
         <button class="term-clr-btn" onclick="clearTerm()">CLR</button>
       </div>
+    </div>
+  </div>
+  <div id="pane-phantom" class="tab-pane">
+    <div class="ph-card">
+      <div class="ph-name">PHANTOM</div>
+      <div class="ph-class">GHOST-TIER OPERATIVE &nbsp;&#9632; DIAMOND CLEARANCE</div>
+      <div class="ph-stat-row">
+        <div class="ph-stat"><span class="ph-stat-k">THREAT LEVEL</span><span class="ph-stat-v" id="ph-threat">--</span></div>
+        <div class="ph-stat"><span class="ph-stat-k">PORTS EXPOSED</span><span class="ph-stat-v" id="ph-ports">--</span></div>
+        <div class="ph-stat"><span class="ph-stat-k">PROCESSES</span><span class="ph-stat-v" id="ph-procs">--</span></div>
+        <div class="ph-stat"><span class="ph-stat-k">MCP ONLINE</span><span class="ph-stat-v" id="ph-mcp">--</span></div>
+      </div>
+      <hr class="ph-divider">
+      <div class="ph-abilities">
+        <div class="ph-ability" onclick="phantomAbility('ghost-scan')">
+          <div class="ph-ability-name">&#9632; GHOST SCAN</div>
+          <div class="ph-ability-desc">Sweep all active ports and flag unrecognized processes as potential threats.</div>
+        </div>
+        <div class="ph-ability" onclick="phantomAbility('breach-audit')">
+          <div class="ph-ability-name">&#9632; BREACH AUDIT</div>
+          <div class="ph-ability-desc">Audit running processes against known-safe list. Surface anomalies.</div>
+        </div>
+        <div class="ph-ability" onclick="phantomAbility('shadow-report')">
+          <div class="ph-ability-name">&#9632; SHADOW REPORT</div>
+          <div class="ph-ability-desc">Generate an ops-security summary with risk indicators and MCP exposure.</div>
+        </div>
+      </div>
+      <div class="ph-output" id="ph-output">Awaiting orders, operative.</div>
     </div>
   </div>
   <div id="pane-memory" class="tab-pane">
@@ -378,8 +437,13 @@ async function _loadConfig() {
     if (tier === 'base' || tier === 'none') {
       document.querySelectorAll('[data-tier="mid"]').forEach(function(el){ el.style.display='none'; });
       document.querySelectorAll('[data-tier="diamond"]').forEach(function(el){ el.style.display='none'; });
+      document.getElementById('phantom-trigger').style.display = 'none';
     } else if (tier === 'mid') {
       document.querySelectorAll('[data-tier="diamond"]').forEach(function(el){ el.style.display='none'; });
+      document.getElementById('phantom-trigger').style.display = 'none';
+    } else if (tier === 'diamond') {
+      document.getElementById('phantom-trigger').style.color = '#2a0a0a';
+      document.getElementById('training-export-btn').style.display = 'inline';
     }
   } catch(_) {}
 }
@@ -491,6 +555,7 @@ function switchTab(name) {
   if (name === 'energy') renderEnergy();
   if (name === 'ai') { renderChat(); fetchTrainingStatus(); loadModels(); }
   if (name === 'memory') { switchMemoryPane('history'); }
+  if (name === 'phantom') { phantomInit(); }
   if (name.startsWith('plugin-')) {
     var pane = document.getElementById('pane-' + name);
     if (pane && pane.getAttribute('data-plugin-loaded') === 'false') {
@@ -747,16 +812,25 @@ function renderMCP(mcps) {
       }
     }
     var actionEl = document.createElement('span');
-    if (m.type === 'service' && !m.running && m.command) {
+    actionEl.style.display = 'flex'; actionEl.style.gap = '3px';
+    if (m.type === 'service' && !m.running) {
       var startBtn = document.createElement('button');
       startBtn.className = 'restart-btn';
       startBtn.textContent = '&#9654; start';
-      startBtn.title = m.command;
-      startBtn.onclick = (function(cmd) { return function() { openTerminal(cmd); }; })(m.command);
+      startBtn.onclick = (function(name, row) { return function() { mcpStart(name, row); }; })(m.name, row);
       actionEl.appendChild(startBtn);
     } else if (m.type === 'service' && m.running) {
-      actionEl.style.cssText = 'color:#1a3a1a;font-size:8px;';
-      actionEl.textContent = 'running';
+      var killBtn2 = document.createElement('button');
+      killBtn2.className = 'kill-btn';
+      killBtn2.textContent = 'kill';
+      killBtn2.onclick = (function(name, row) { return function() { mcpKill(name, row); }; })(m.name, row);
+      actionEl.appendChild(killBtn2);
+    } else if (m.type === 'mcp' && m.running && m.pid) {
+      var killMcpBtn = document.createElement('button');
+      killMcpBtn.className = 'kill-btn';
+      killMcpBtn.textContent = 'kill';
+      killMcpBtn.onclick = (function(name, row) { return function() { mcpKill(name, row); }; })(m.name, row);
+      actionEl.appendChild(killMcpBtn);
     }
     row.appendChild(nameEl);
     row.appendChild(statusEl);
@@ -1175,6 +1249,134 @@ function switchAiPane(name) {
   if (name === 'terminal') _termEnsureConnect();
 }
 
+// ── MCP start / kill ──────────────────────────────────────────
+async function mcpStart(name, row) {
+  var btn = row.querySelector('.restart-btn');
+  if (btn) { btn.textContent = 'starting…'; btn.disabled = true; }
+  try {
+    var r = await fetch('/api/mcp/' + encodeURIComponent(name) + '/start', { method: 'POST' });
+    var data = await r.json();
+    if (!r.ok) {
+      if (btn) { btn.textContent = data.detail || 'error'; setTimeout(function() { btn.textContent = '&#9654; start'; btn.disabled = false; }, 2500); }
+    } else {
+      if (btn) { btn.textContent = 'started'; btn.style.color = '#2ecc71'; }
+      setTimeout(function() { fetchScan(); }, 1500);
+    }
+  } catch(e) {
+    if (btn) { btn.textContent = 'error'; setTimeout(function() { btn.textContent = '&#9654; start'; btn.disabled = false; }, 2500); }
+  }
+}
+
+async function mcpKill(name, row) {
+  var btn = row.querySelector('.kill-btn');
+  if (btn) { btn.textContent = 'killing…'; btn.disabled = true; }
+  try {
+    var r = await fetch('/api/mcp/' + encodeURIComponent(name) + '/kill', { method: 'POST' });
+    if (r.ok) {
+      if (btn) { btn.textContent = 'killed'; btn.style.color = '#e74c3c'; }
+      setTimeout(function() { fetchScan(); }, 1000);
+    } else {
+      var data = await r.json();
+      if (btn) { btn.textContent = data.detail || 'error'; setTimeout(function() { btn.textContent = 'kill'; btn.disabled = false; }, 2500); }
+    }
+  } catch(e) {
+    if (btn) { btn.textContent = 'error'; setTimeout(function() { btn.textContent = 'kill'; btn.disabled = false; }, 2500); }
+  }
+}
+
+// ── Shell selection ────────────────────────────────────────────
+var _activeShell = 'powershell';
+var _shellPrompts = { powershell: 'PS>', cmd: 'CMD>', bash: '$' };
+
+function setShell(name) {
+  if (name === _activeShell) return;
+  _activeShell = name;
+  ['ps','cmd','bash'].forEach(function(s) {
+    var b = document.getElementById('shell-btn-' + s);
+    if (b) b.classList.toggle('active', (s === 'ps' ? 'powershell' : s) === name);
+  });
+  document.getElementById('term-prompt').textContent = _shellPrompts[name] || '>';
+  // reconnect with new shell
+  if (_termWs) { _termWs.close(); _termWs = null; }
+  _termAppend('\n[shell changed to ' + name + ']\n');
+  _termEnsureConnect();
+}
+
+// ── Phantom character ──────────────────────────────────────────
+var _phantomClicks = 0, _phantomTimer = null;
+
+function _phantomClick() {
+  var tier = (_config && _config.tier) || 'none';
+  if (tier !== 'diamond') return;
+  _phantomClicks++;
+  var trigger = document.getElementById('phantom-trigger');
+  trigger.classList.add('armed');
+  clearTimeout(_phantomTimer);
+  _phantomTimer = setTimeout(function() { _phantomClicks = 0; trigger.classList.remove('armed'); }, 1500);
+  if (_phantomClicks >= 3) {
+    _phantomClicks = 0;
+    clearTimeout(_phantomTimer);
+    trigger.classList.remove('armed');
+    _activatePhantom();
+  }
+}
+
+function _activatePhantom() {
+  var pane = document.getElementById('pane-phantom');
+  pane.style.display = 'block';
+  switchTab('phantom');
+}
+
+function phantomInit() {
+  var scan = _lastScan;
+  if (!scan) return;
+  var ports = (scan.ports || []).length;
+  var procs = (scan.summary || {}).process_count || 0;
+  var mcpRunning = (scan.mcp_servers || []).filter(function(m) { return m.running; }).length;
+  var threat = ports > 20 ? 'HIGH' : ports > 10 ? 'MEDIUM' : 'LOW';
+  var threatColor = ports > 20 ? '#e74c3c' : ports > 10 ? '#e67e22' : '#2ecc71';
+  document.getElementById('ph-threat').textContent = threat;
+  document.getElementById('ph-threat').style.color = threatColor;
+  document.getElementById('ph-ports').textContent = ports;
+  document.getElementById('ph-procs').textContent = procs;
+  document.getElementById('ph-mcp').textContent = mcpRunning;
+}
+
+async function phantomAbility(type) {
+  var out = document.getElementById('ph-output');
+  out.textContent = 'Executing ' + type.toUpperCase() + '…';
+  try {
+    var r = await fetch('/api/scan');
+    var data = await r.json();
+    var ports = data.ports || [];
+    var mcps = data.mcp_servers || [];
+    if (type === 'ghost-scan') {
+      var known = ['uvicorn','node','python','chrome','code','explorer'];
+      var threats = ports.filter(function(p) { return !known.some(function(k) { return (p.process||'').toLowerCase().includes(k); }); });
+      out.textContent = '[ GHOST SCAN COMPLETE ]\n'
+        + 'Total ports mapped: ' + ports.length + '\n'
+        + 'Unrecognized processes flagged: ' + threats.length + '\n\n'
+        + (threats.length ? threats.slice(0,8).map(function(p) { return '  ⚠ ' + p.process + ' :' + p.port; }).join('\n') : '  No threats detected.');
+    } else if (type === 'breach-audit') {
+      var highMem = ports.filter(function(p) { return (p.memory_mb||0) > 500; });
+      out.textContent = '[ BREACH AUDIT ]\n'
+        + 'Processes audited: ' + ports.length + '\n'
+        + 'High-memory suspects (>500MB): ' + highMem.length + '\n\n'
+        + (highMem.length ? highMem.slice(0,6).map(function(p) { return '  ! ' + p.process + ' — ' + Math.round(p.memory_mb)+'MB'; }).join('\n') : '  All clear.');
+    } else {
+      var offMcp = mcps.filter(function(m) { return !m.running; });
+      out.textContent = '[ SHADOW REPORT ]\n'
+        + 'Active ports: ' + ports.length + '\n'
+        + 'MCP servers online: ' + mcps.filter(function(m) { return m.running; }).length + '/' + mcps.length + '\n'
+        + 'Offline MCP targets: ' + offMcp.length + '\n\n'
+        + (offMcp.length ? offMcp.map(function(m) { return '  ✗ ' + m.name; }).join('\n') : '  All MCP servers operational.')
+        + '\n\nRisk assessment: ' + (ports.length > 20 ? 'ELEVATED — reduce exposed ports' : 'NOMINAL');
+    }
+  } catch(e) {
+    out.textContent = '[error] ' + e.message;
+  }
+}
+
 // ── Terminal WebSocket ─────────────────────────────────────────
 var _termWs = null;
 var _termCmdQueue = [];
@@ -1189,8 +1391,8 @@ function _termAppend(text) {
 
 function _termEnsureConnect() {
   if (_termWs && _termWs.readyState <= 1) return;
-  _termAppend('Connecting to terminal…\n');
-  var ws = new WebSocket('ws://' + location.host + '/ws/terminal');
+  _termAppend('Connecting to terminal [' + _activeShell + ']…\n');
+  var ws = new WebSocket('ws://' + location.host + '/ws/terminal?shell=' + encodeURIComponent(_activeShell));
   _termWs = ws;
   ws.onopen = function() {
     _termAppend('Ready.\n\n');

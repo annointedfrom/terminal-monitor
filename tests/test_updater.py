@@ -58,9 +58,9 @@ _APP_URL = "https://annointedfrom.github.io/terminal-monitor/releases.json"
 _MODELS_URL = "https://annointedfrom.github.io/terminal-monitor/models-manifest.json"
 
 _APP_JSON = {
-    "latest": "2.0.3",
-    "changelog": "Security hardening",
-    "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.0.3/terminal-monitor-v2.0.3.zip",
+    "latest": "2.1.1",
+    "changelog": "Multi-shell terminals, AI filesystem awareness, MCP start/kill, Phantom character",
+    "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.1.1/terminal-monitor-v2.1.1.zip",
     "min_tier": "base",
 }
 _MODELS_JSON = {
@@ -83,8 +83,8 @@ async def test_check_updates_has_update():
         result = await check_updates(None)
     assert result["app"]["has_update"] is True
     assert result["app"]["current"] == __version__
-    assert result["app"]["latest"] == "2.0.3"
-    assert result["app"]["changelog"] == "Security hardening"
+    assert result["app"]["latest"] == "2.1.1"
+    assert result["app"]["changelog"] == "Multi-shell terminals, AI filesystem awareness, MCP start/kill, Phantom character"
 
 
 async def test_check_updates_model_available_for_mid():

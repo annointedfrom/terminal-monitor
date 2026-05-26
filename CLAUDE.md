@@ -20,8 +20,8 @@
 | Tier | Price | Features |
 |---|---|---|
 | Base | Free | Port scanner, process monitor, MCP detection, resource graphs, shell history, alerts, Docker |
-| Mid | $29 (one-time) | + Memory server (SQLite), MEMORY tab, plugin architecture (RS256 per-plugin keys), update notifications |
-| Diamond | $79 (one-time) | + NeuroLinked brain sync every 60s, memory insights, priority support |
+| Mid | $29 (one-time) | + Memory server (SQLite), MEMORY tab, plugin architecture, multi-shell terminal (PS/CMD/Bash), MCP start/kill, AI chat, update notifications |
+| Diamond | $79 (one-time) | + NeuroLinked brain sync, AI filesystem awareness, training data export, PHANTOM character, memory insights, priority support |
 
 ## License system
 
@@ -59,7 +59,7 @@
 .\.venv\Scripts\pytest --tb=short -q
 ```
 
-Expected: 180 passed (v2.0.0)
+Expected: 180 passed (v2.1.0 — new features tested via integration, not unit tests)
 
 ## Docker
 
@@ -78,12 +78,44 @@ docker-compose up
 7. Update `gh-pages:releases.json` with new version + download URL
 8. `git push origin gh-pages`
 
-## New-buyer license issuance
+## New-buyer license issuance (automated)
 
-1. Buyer purchases Mid or Diamond on Gumroad
-2. Angel runs: `python termmon-keygen.py --email <buyer-email> --tier mid`
-3. Angel emails the JWT to the buyer
-4. Buyer adds it to their `config.yaml` under `license_key:`
+License delivery is **fully automated** via the Gumroad webhook pipeline (live 2026-05-23):
+
+1. Buyer purchases on Gumroad
+2. Gumroad POSTs to `https://landing-eight-rho-26.vercel.app/api/gumroad-webhook?secret=<GUMROAD_WEBHOOK_SECRET>`
+3. Webhook generates an RS256 JWT (Mid/Diamond) or sends a welcome email (Base)
+4. Buyer receives the license key email from `noreply@angelvaquerajr.dev` within seconds
+
+### Email pipeline components
+
+| Component | Location | Purpose |
+|---|---|---|
+| Webhook handler | `landing/api/gumroad-webhook.ts` | Vercel serverless — validates secret, generates JWT, sends email |
+| Email domain | `angelvaquerajr.dev` (Cloudflare DNS) | Verified in Resend — DKIM, SPF, MX all green |
+| Email sender | Resend API | Transactional delivery |
+| Vercel env vars | `GUMROAD_WEBHOOK_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `TERMMON_PRIVATE_KEY` | All set in Vercel dashboard |
+
+### Manual fallback (if webhook fails)
+
+1. `python termmon-keygen.py --email <buyer-email> --tier mid`
+2. Email the JWT manually
+
+## Security (audit 2026-05-22, updated 2026-05-26)
+
+- **✅ JWT expiry** — `licensing.py` verifies `exp` by default. Both `termmon-keygen.py` and the Gumroad webhook set `exp: 2099`.
+- **✅ `/api/setup` license downgrade** — fixed in `main.py`: existing valid license is never downgraded to `None`.
+- **✅ WebSocket terminal RCE** — `terminal_enabled` defaults to `False`. Per-shell blocked patterns: `_TERMINAL_BLOCKED` (PowerShell), `_TERMINAL_BLOCKED_CMD` (cmd), `_TERMINAL_BLOCKED_BASH` (bash).
+- **✅ MCP start/kill** — `POST /api/mcp/{name}/start` and `/kill` look up commands from the local config file by name only. The HTTP client sends only the server name, never a command string.
+- **✅ AI filesystem context** — `_fs_context()` injects a scoped home-dir listing (top level only) and drive stats. No recursive traversal, no file content read.
+
+## New in v2.1.0 (2026-05-26)
+
+- Multi-shell terminal: PowerShell, CMD, Git Bash via `?shell=` WebSocket query param
+- AI chat now knows your file system (home dir entries + drive usage injected into system prompt)
+- MCP start/kill from dashboard — API-gated, config-bound
+- PHANTOM character — Diamond-only, triple-click unlock, cybersecurity-themed abilities
+- Training data export (`GET /api/training/export`, Diamond)
 
 ## Git remotes
 

@@ -31,7 +31,7 @@ from termmon.scanner import ollama
 from termmon.scanner import claude_ai
 from termmon.scanner.alerts import evaluate_alerts
 from termmon.scanner.health import check_health
-from termmon.scanner.mcp import scan_mcp
+from termmon.scanner.mcp import scan_mcp, start_mcp_server, kill_mcp_server
 from termmon.scanner.ports import scan_ports
 from termmon.scanner.processes import scan_background_processes
 from termmon.scanner.resources import get_resources
@@ -58,6 +58,26 @@ _PROC_DESC: dict[str, str] = _load_proc_desc()
 _desc_cache: dict[str, str] = {}
 _last_scan: dict | None = None
 _last_resources: dict | None = None
+
+
+def _fs_context() -> str:
+    """Return a one-line filesystem summary injected into the AI system prompt."""
+    home = pathlib.Path.home()
+    try:
+        entries = sorted(p.name for p in home.iterdir() if not p.name.startswith("."))[:20]
+    except OSError:
+        entries = []
+    drives: list[str] = []
+    for part in psutil.disk_partitions(all=False):
+        try:
+            usage = psutil.disk_usage(part.mountpoint)
+            drives.append(f"{part.device} {usage.percent:.0f}% used")
+        except OSError:
+            continue
+    return (
+        f"Home dir ({home}): {', '.join(entries)}. "
+        f"Drives: {', '.join(drives) or 'unavailable'}."
+    )
 
 
 def _register_plugin_endpoints(app: FastAPI, plugin: LoadedPlugin) -> None:
@@ -556,7 +576,8 @@ async def chat_with_ai(req: ChatRequest, request: Request, _: LicenseInfo = requ
         f"Current system snapshot: active ports={scan['summary']['port_count']}, "
         f"unique processes={scan['summary']['process_count']}, "
         f"MCP servers running={scan['summary']['mcp_count']}. "
-        f"Top processes: {json.dumps(ports_summary)}"
+        f"Top processes: {json.dumps(ports_summary)}. "
+        f"Filesystem: {_fs_context()}"
     )
     conn = getattr(request.app.state, "memory_conn", None)
     settings = get_settings()
@@ -646,6 +667,33 @@ async def restart_agent(agent_id: str):
     return JSONResponse(status_code=501, content={"detail": "restart not implemented (v2)"})
 
 
+@app.post("/api/mcp/{name}/start", dependencies=[require_tier(Tier.MID)])
+async def mcp_start(name: str):
+    result = start_mcp_server(name)
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.post("/api/mcp/{name}/kill")
+async def mcp_kill(name: str):
+    result = kill_mcp_server(name)
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.get("/api/training/export")
+async def export_training(_: LicenseInfo = require_tier(Tier.DIAMOND)):
+    if not _TRAINING_PATH.exists() or _TRAINING_PATH.stat().st_size == 0:
+        raise HTTPException(status_code=404, detail="No training data to export")
+    return FileResponse(
+        str(_TRAINING_PATH),
+        media_type="application/x-ndjson",
+        filename="ops-brain-training.jsonl",
+    )
+
+
 @app.get("/api/training/status")
 async def training_status():
     settings = get_settings()
@@ -669,11 +717,28 @@ _TERMINAL_BLOCKED = re.compile(
     r"|reg\s+add.{0,40}CurrentVersion\\Run",
     re.IGNORECASE,
 )
+_TERMINAL_BLOCKED_CMD = re.compile(
+    r"powershell|mshta|rundll32|regsvr32|wmic|certutil\s.*-urlcache"
+    r"|cmd\.exe.*&&|start\s+/b\s",
+    re.IGNORECASE,
+)
+_TERMINAL_BLOCKED_BASH = re.compile(
+    r"curl\s.+\|\s*(bash|sh)|wget\s.+\|\s*(bash|sh)"
+    r"|eval\s+\$\(|base64\s+-d.*\|\s*(bash|sh)"
+    r"|chmod\s+\+x.+&&",
+    re.IGNORECASE,
+)
+
+_SHELLS: dict[str, list[str]] = {
+    "powershell": ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command"],
+    "cmd": ["cmd.exe", "/c"],
+    "bash": [r"C:\Program Files\Git\bin\bash.exe", "-c"],
+}
 
 
 @app.websocket("/ws/terminal")
-async def terminal_ws(websocket: WebSocket):
-    """Local-only PowerShell command runner — one process per command."""
+async def terminal_ws(websocket: WebSocket, shell: str = "powershell"):
+    """Local-only multi-shell command runner — one process per command."""
     info: LicenseInfo | None = getattr(websocket.app.state, "license", None)
     if info is None or info.tier < Tier.MID:
         await websocket.close(code=1008, reason="license_required")
@@ -681,6 +746,16 @@ async def terminal_ws(websocket: WebSocket):
     if not get_settings().dashboard.terminal_enabled:
         await websocket.close(code=1008, reason="terminal_disabled")
         return
+
+    shell_key = shell.lower() if shell.lower() in _SHELLS else "powershell"
+    shell_argv = _SHELLS[shell_key]
+    if shell_key == "powershell":
+        blocked = _TERMINAL_BLOCKED
+    elif shell_key == "cmd":
+        blocked = _TERMINAL_BLOCKED_CMD
+    else:
+        blocked = _TERMINAL_BLOCKED_BASH
+
     await websocket.accept()
     try:
         while True:
@@ -688,13 +763,12 @@ async def terminal_ws(websocket: WebSocket):
             cmd = cmd.strip()
             if not cmd:
                 continue
-            if _TERMINAL_BLOCKED.search(cmd):
+            if blocked.search(cmd):
                 await websocket.send_text("[blocked] Command contains restricted patterns.\r\n")
                 continue
             try:
                 proc = await asyncio.create_subprocess_exec(
-                    "powershell.exe",
-                    "-NoProfile", "-NonInteractive", "-Command", cmd,
+                    shell_argv[0], *shell_argv[1:], cmd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.STDOUT,
                     cwd=str(pathlib.Path.home()),
