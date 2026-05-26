@@ -1,6 +1,6 @@
 ﻿{
-    "download_url":  "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.0.1/terminal-monitor-v2.0.1.zip",
-    "changelog":  "Security patch: JWT expiry enforced, setup endpoint locked after first run, terminal disable flag added",
-    "latest":  "2.0.1",
-    "min_tier":  "base"
+    "latest": "2.1.0",
+    "changelog": "Multi-shell terminal, AI filesystem, MCP start/kill, PHANTOM Diamond character, training export",
+    "download_url": "https://github.com/annointedfrom/terminal-monitor/releases/download/v2.1.0/terminal-monitor-v2.1.0.zip",
+    "min_tier": "base"
 }
